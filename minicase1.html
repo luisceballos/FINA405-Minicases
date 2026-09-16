@@ -427,20 +427,20 @@ const GROUPS = [
 // chase: Chase direct CNY/EUR quote
 const ANSWERS = [
   // EUR focus (net assets €2M): Groups 1, 2, 3, 11 — rates deliberately spread to prevent copying
-  {grupo:1,  eurUsd:1.04, usdMxn:16.50, usdCny:6.70, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.155},
-  {grupo:2,  eurUsd:1.15, usdMxn:18.00, usdCny:6.92, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.120},
-  {grupo:3,  eurUsd:1.26, usdMxn:19.40, usdCny:7.18, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.115},
+  {grupo:1,  eurUsd:1.04, usdMxn:16.50, usdCny:6.70, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.130},
+  {grupo:2,  eurUsd:1.15, usdMxn:18.00, usdCny:6.92, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.107},
+  {grupo:3,  eurUsd:1.26, usdMxn:20.00, usdCny:7.18, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.118},
   // MXN focus (net assets MXN 30M): Groups 4, 5, 6, 7
-  {grupo:4,  eurUsd:1.10, usdMxn:16.20, usdCny:7.25, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.110},
-  {grupo:5,  eurUsd:1.20, usdMxn:18.40, usdCny:6.98, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.125},
-  {grupo:6,  eurUsd:1.30, usdMxn:20.20, usdCny:6.75, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.105},
-  {grupo:7,  eurUsd:1.08, usdMxn:22.00, usdCny:6.55, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.130},
+  {grupo:4,  eurUsd:1.10, usdMxn:16.20, usdCny:7.40, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.120},
+  {grupo:5,  eurUsd:1.20, usdMxn:18.40, usdCny:6.98, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.105},
+  {grupo:6,  eurUsd:1.42, usdMxn:20.20, usdCny:6.75, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.093},
+  {grupo:7,  eurUsd:1.08, usdMxn:22.00, usdCny:6.30, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.115},
   // USD focus (net liabilities $7M): Groups 8, 9, 10
-  {grupo:8,  eurUsd:1.12, usdMxn:17.20, usdCny:6.78, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.125},
-  {grupo:9,  eurUsd:1.22, usdMxn:19.00, usdCny:7.08, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.120},
-  {grupo:10, eurUsd:1.32, usdMxn:20.80, usdCny:7.35, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.098},
+  {grupo:8,  eurUsd:1.12, usdMxn:17.20, usdCny:6.78, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.124},
+  {grupo:9,  eurUsd:1.22, usdMxn:19.00, usdCny:7.08, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.119},
+  {grupo:10, eurUsd:1.32, usdMxn:20.80, usdCny:7.10, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.082},
   // EUR focus (net assets €2M): Group 11
-  {grupo:11, eurUsd:1.38, usdMxn:21.20, usdCny:7.42, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.102}
+  {grupo:11, eurUsd:1.38, usdMxn:21.20, usdCny:7.42, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.109}
 ];
 
 const FOCUS_INFO = {
@@ -450,7 +450,7 @@ const FOCUS_INFO = {
 };
 
 // ─── HELPERS ────────────────────────────────────
-function near(a,b,pct=0.025){return Math.abs(a-b)<=Math.abs(b)*pct+0.01;}
+function near(a,b,pct=0.01){return Math.abs(a-b)<=Math.abs(b)*pct+0.001;}
 function showFB(id,ok,msg){
   const el=document.getElementById(id);
   el.style.display='flex'; el.className='feedback '+(ok?'ok':'err');
@@ -776,7 +776,7 @@ function validateQ6(){
   const txt=document.getElementById('q6_text').value.trim();
   if(isNaN(vM)||!vDir){showFB('q6_fb',false,'Please enter M and select the direction.');return;}
   const x=exp();
-  const mOk=near(vM,x.M,0.03), dirOk=vDir===x.dir;
+  const mOk=near(vM,x.M), dirOk=vDir===x.dir;
   document.getElementById('q6_m').className='num-input '+(mOk?'ok':'err');
   document.getElementById('q6_dir').className='sel-input '+(dirOk?'ok':'err');
   if(mOk&&dirOk&&txt.length>=60){
