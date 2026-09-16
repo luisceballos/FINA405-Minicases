@@ -870,16 +870,17 @@ async function resetSubmission(docId){
 
 // ─── ANSWER KEY REPORT ──────────────────────────────────────────────────────
 const MC1_ANSWERS=[
-  {grupo:1,  eurUsd:1.1856, usdMxn:18.3156, usdCny:7.1036, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.13},
-  {grupo:2,  eurUsd:1.2020, usdMxn:18.1500, usdCny:7.0850, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.13},
-  {grupo:3,  eurUsd:1.1700, usdMxn:18.4800, usdCny:7.1200, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.14},
-  {grupo:4,  eurUsd:1.2150, usdMxn:18.0200, usdCny:7.0600, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.10},
-  {grupo:5,  eurUsd:1.1580, usdMxn:18.6500, usdCny:7.1500, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.10},
-  {grupo:6,  eurUsd:1.1980, usdMxn:17.9800, usdCny:7.0400, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.12},
-  {grupo:7,  eurUsd:1.2100, usdMxn:18.4200, usdCny:7.1800, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.14},
-  {grupo:8,  eurUsd:1.1750, usdMxn:18.5800, usdCny:6.9800, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.13},
-  {grupo:9,  eurUsd:1.1920, usdMxn:17.8500, usdCny:7.2000, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.14},
-  {grupo:10, eurUsd:1.1650, usdMxn:18.2500, usdCny:7.0700, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.11}
+  {grupo:1,  eurUsd:1.04, usdMxn:16.50, usdCny:6.70, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.155},
+  {grupo:2,  eurUsd:1.15, usdMxn:18.00, usdCny:6.92, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.120},
+  {grupo:3,  eurUsd:1.26, usdMxn:19.40, usdCny:7.18, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.115},
+  {grupo:4,  eurUsd:1.10, usdMxn:16.20, usdCny:7.25, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.110},
+  {grupo:5,  eurUsd:1.20, usdMxn:18.40, usdCny:6.98, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.125},
+  {grupo:6,  eurUsd:1.30, usdMxn:20.20, usdCny:6.75, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.105},
+  {grupo:7,  eurUsd:1.08, usdMxn:22.00, usdCny:6.55, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.130},
+  {grupo:8,  eurUsd:1.12, usdMxn:17.20, usdCny:6.78, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.125},
+  {grupo:9,  eurUsd:1.22, usdMxn:19.00, usdCny:7.08, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.120},
+  {grupo:10, eurUsd:1.32, usdMxn:20.80, usdCny:7.35, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.098},
+  {grupo:11, eurUsd:1.38, usdMxn:21.20, usdCny:7.42, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.102}
 ];
 
 function computeAK(a){

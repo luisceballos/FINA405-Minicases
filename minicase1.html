@@ -125,7 +125,7 @@ firebase.initializeApp({
     <li>This is an <strong>in-class evaluation</strong>. You must attend to participate and submit.</li>
     <li>Work <strong>only with your assigned group</strong>. No switching allowed.</li>
     <li><strong>One submission per group</strong>. Coordinate before submitting.</li>
-    <li>If a member is <strong>not physically present</strong>, your group will receive a penalty.</li>
+    <li>If a group member is <strong>not physically present</strong> in class when your group submits, he/she will individually receive a grade of 0 — regardless of your group's submission. Your group's grade is not affected.</li>
     <li><strong>No AI tools</strong> or external materials not covered in class.</li>
     <li>Complete all questions and submit by the end of class.</li>
   </ol>
@@ -419,23 +419,28 @@ const GROUPS = [
   {grupo:1,section:1,group:1},{grupo:2,section:1,group:2},{grupo:3,section:1,group:3},
   {grupo:4,section:1,group:4},{grupo:5,section:1,group:5},{grupo:6,section:1,group:6},
   {grupo:7,section:1,group:7},{grupo:8,section:1,group:8},{grupo:9,section:1,group:9},
-  {grupo:10,section:1,group:10}
+  {grupo:10,section:1,group:10},{grupo:11,section:1,group:11}
 ];
 
 // focus: currency to analyze in Q1b/Q1c
 // netPos: 'assets' or 'liabilities'   netAmt: absolute amount in foreign currency
 // chase: Chase direct CNY/EUR quote
 const ANSWERS = [
-  {grupo:1,  eurUsd:1.1856, usdMxn:18.3156, usdCny:7.1036, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.13},
-  {grupo:2,  eurUsd:1.2020, usdMxn:18.1500, usdCny:7.0850, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.13},
-  {grupo:3,  eurUsd:1.1700, usdMxn:18.4800, usdCny:7.1200, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.14},
-  {grupo:4,  eurUsd:1.2150, usdMxn:18.0200, usdCny:7.0600, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.10},
-  {grupo:5,  eurUsd:1.1580, usdMxn:18.6500, usdCny:7.1500, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.10},
-  {grupo:6,  eurUsd:1.1980, usdMxn:17.9800, usdCny:7.0400, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.12},
-  {grupo:7,  eurUsd:1.2100, usdMxn:18.4200, usdCny:7.1800, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.14},
-  {grupo:8,  eurUsd:1.1750, usdMxn:18.5800, usdCny:6.9800, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.13},
-  {grupo:9,  eurUsd:1.1920, usdMxn:17.8500, usdCny:7.2000, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.14},
-  {grupo:10, eurUsd:1.1650, usdMxn:18.2500, usdCny:7.0700, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.11}
+  // EUR focus (net assets €2M): Groups 1, 2, 3, 11 — rates deliberately spread to prevent copying
+  {grupo:1,  eurUsd:1.04, usdMxn:16.50, usdCny:6.70, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.155},
+  {grupo:2,  eurUsd:1.15, usdMxn:18.00, usdCny:6.92, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.120},
+  {grupo:3,  eurUsd:1.26, usdMxn:19.40, usdCny:7.18, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.115},
+  // MXN focus (net assets MXN 30M): Groups 4, 5, 6, 7
+  {grupo:4,  eurUsd:1.10, usdMxn:16.20, usdCny:7.25, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.110},
+  {grupo:5,  eurUsd:1.20, usdMxn:18.40, usdCny:6.98, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.125},
+  {grupo:6,  eurUsd:1.30, usdMxn:20.20, usdCny:6.75, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.105},
+  {grupo:7,  eurUsd:1.08, usdMxn:22.00, usdCny:6.55, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.130},
+  // USD focus (net liabilities $7M): Groups 8, 9, 10
+  {grupo:8,  eurUsd:1.12, usdMxn:17.20, usdCny:6.78, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.125},
+  {grupo:9,  eurUsd:1.22, usdMxn:19.00, usdCny:7.08, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.120},
+  {grupo:10, eurUsd:1.32, usdMxn:20.80, usdCny:7.35, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.098},
+  // EUR focus (net assets €2M): Group 11
+  {grupo:11, eurUsd:1.38, usdMxn:21.20, usdCny:7.42, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.102}
 ];
 
 const FOCUS_INFO = {
