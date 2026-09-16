@@ -476,46 +476,27 @@ const _grp=parseInt(_p.get('grupo')||'1');
 let gNum=_grp, G, A, _submitted=false;
 
 async function resolveGroupAndStart(){
-  // ── TOKEN / DIRECT-ACCESS CHECK ──────────────────────────────
-  const _tok=_p.get('tok');
-  const _hasParams=_p.has('seccion')||_p.has('grupo');
-  if(_hasParams && !_tok){
-    // Accessed directly without going through hub
-    document.body.innerHTML=`
-      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-family:'Segoe UI',system-ui,sans-serif">
-        <div style="background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.12);padding:48px 40px;max-width:480px;width:90%;text-align:center">
-          <div style="font-size:56px;margin-bottom:16px">🔐</div>
-          <h2 style="color:#002147;font-size:22px;margin-bottom:10px">Access Required</h2>
-          <p style="color:#374151;font-size:15px;line-height:1.6;margin-bottom:20px">
-            Please open this minicase through the course hub using your access code.
-          </p>
-          <a href="minicase-hub.html" style="display:inline-block;background:#002147;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">← Go to Course Hub</a>
-        </div>
-      </div>`;
-    return;
-  }
-  if(_tok){
-    // Validate token
-    try{
-      const tokDoc=await firebase.firestore().collection('mc_tokens').doc(_tok).get();
-      if(!tokDoc.exists||new Date(tokDoc.data().expires)<new Date()){
+  // ── ACTIVE CHECK: verify minicase is enabled in hub config ────
+  try{
+    const hub=await firebase.firestore().collection('minicase_hub405').doc('config').get();
+    if(hub.exists){
+      const mc=hub.data()?.minicases?.[0]; // index 0 = Minicase 1
+      if(mc&&mc.active===false){
         document.body.innerHTML=`
           <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-family:'Segoe UI',system-ui,sans-serif">
             <div style="background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.12);padding:48px 40px;max-width:480px;width:90%;text-align:center">
-              <div style="font-size:56px;margin-bottom:16px">⏰</div>
-              <h2 style="color:#002147;font-size:22px;margin-bottom:10px">Access Link Expired</h2>
+              <div style="font-size:56px;margin-bottom:16px">🔒</div>
+              <h2 style="color:#002147;font-size:22px;margin-bottom:10px">Minicase Not Available</h2>
               <p style="color:#374151;font-size:15px;line-height:1.6;margin-bottom:20px">
-                Your access link has expired or is no longer valid. Please return to the hub and enter the access code again.
+                This minicase is not currently open. Please check back later or contact your instructor.
               </p>
               <a href="minicase-hub.html" style="display:inline-block;background:#002147;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">← Go to Course Hub</a>
             </div>
           </div>`;
         return;
       }
-      // Valid — delete token (single use)
-      firebase.firestore().collection('mc_tokens').doc(_tok).delete().catch(()=>{});
-    }catch(e){/* network error — allow through */}
-  }
+    }
+  }catch(e){/* network error — allow through */}
 
   // Show full-page loading overlay so minicase content never flashes
   const overlay=document.createElement('div');
