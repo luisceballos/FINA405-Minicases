@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Case 1 — Cash Flows in Foreign Currencies</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#002147;--gold:#c49a3c;--light:#f0f4f8;--card:#fff;--success:#1a7f48;--error:#c0392b;--muted:#6b7280;--radius:10px;--shadow:0 2px 12px rgba(0,0,0,.10)}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--light);color:#1a1a2e;min-height:100vh}
+header{background:var(--navy);color:#fff;padding:0}
+.hdr-top{display:flex;align-items:center;gap:16px;padding:14px 32px;border-bottom:3px solid var(--gold)}
+.hdr-logo{font-size:13px;font-weight:600;letter-spacing:.5px;opacity:.85;white-space:nowrap}
+.hdr-title{flex:1}
+.hdr-title h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.hdr-title p{font-size:13px;opacity:.8;margin-top:2px}
+.group-badge{background:var(--gold);color:#fff;padding:8px 20px;border-radius:24px;font-weight:800;font-size:18px;white-space:nowrap}
+main{max-width:920px;margin:0 auto;padding:24px 16px 60px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:20px}
+.card h2{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h2 .badge{background:var(--navy);color:#fff;border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.team-input{width:100%;border:1.5px solid #dde2ea;border-radius:6px;padding:8px 12px;font-size:14px}
+.team-input:focus{outline:none;border-color:var(--navy)}
+/* BALANCE SHEET */
+.bs-table{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0}
+.bs-table th{background:var(--navy);color:#fff;padding:8px 12px;text-align:left;font-size:12px;font-weight:600;letter-spacing:.3px}
+.bs-table th:last-child{text-align:right}
+.bs-table td{padding:7px 12px;border-bottom:1px solid #e8edf2}
+.bs-table td:last-child{text-align:right;font-family:monospace}
+.bs-table tr:last-child td{border-bottom:none}
+.bs-table tr.section-hdr td{background:#eef2f7;font-weight:700;color:var(--navy);font-size:11px;letter-spacing:.5px;text-transform:uppercase;padding:6px 12px}
+.bs-table tr.fx-row{background:#fffbeb}
+.ccy{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:4px}
+.ccy-eur{background:#dbeafe;color:#1e40af}
+.ccy-mxn{background:#dcfce7;color:#166534}
+.ccy-usd{background:#fef9c3;color:#854d0e}
+.ccy-cny{background:#f3e8ff;color:#6b21a8}
+/* FX DATA BOX */
+.fx-box{background:linear-gradient(135deg,var(--navy) 0%,#1a3a6b 100%);color:#fff;border-radius:8px;padding:16px 20px;margin-bottom:14px}
+.fx-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:10px}
+.fx-item{text-align:center}
+.fx-label{font-size:11px;opacity:.7;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.fx-val{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.fx-pair{font-size:12px;opacity:.6;margin-top:2px}
+.focus-banner{display:flex;align-items:center;gap:10px;background:#fffbeb;border:1.5px solid var(--gold);border-radius:8px;padding:11px 16px;margin:12px 0;font-size:14px;flex-wrap:wrap}
+.focus-badge{background:var(--gold);color:#fff;font-weight:800;padding:4px 14px;border-radius:16px;font-size:15px}
+/* INPUTS */
+.num-input,.sel-input{border:2px solid #dde2ea;border-radius:6px;padding:9px 12px;font-size:14px;width:100%;transition:border-color .2s;font-family:monospace}
+.sel-input{font-family:inherit;background:#fff;cursor:pointer}
+.num-input:focus,.sel-input:focus{outline:none;border-color:var(--navy)}
+.num-input.ok,.sel-input.ok{border-color:var(--success);background:#f0faf4}
+.num-input.err,.sel-input.err{border-color:var(--error);background:#fef2f0}
+.input-group{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.input-group label{font-size:13px;color:var(--muted);font-weight:500}
+.hint{font-size:12px;color:var(--muted);margin-top:3px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px}
+@media(max-width:600px){.g2,.g3,.g4,.fx-grid{grid-template-columns:1fr}}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:6px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-primary:hover{background:#003a7a}
+.btn-success{background:var(--success);color:#fff}
+/* FEEDBACK */
+.feedback{display:none;padding:10px 14px;border-radius:6px;font-size:14px;margin-top:10px;font-weight:500}
+.feedback.ok{background:#ecfdf5;color:var(--success);border:1px solid #6ee7b7;display:flex;align-items:center;gap:8px}
+.feedback.err{background:#fef2f0;color:var(--error);border:1px solid #fca5a5;display:flex;align-items:center;gap:8px}
+/* LOCK */
+.section-locked{position:relative;user-select:none}
+.lock-overlay{position:absolute;inset:0;background:rgba(240,244,248,.93);border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;backdrop-filter:blur(3px)}
+.lock-icon{font-size:36px}
+.lock-msg{font-size:15px;color:var(--muted);font-weight:600;text-align:center;max-width:280px}
+.section-locked .card{opacity:.4;pointer-events:none}
+/* TEXTAREA */
+.open-area{width:100%;min-height:100px;border:2px solid #dde2ea;border-radius:6px;padding:10px 14px;font-size:14px;font-family:inherit;resize:vertical;transition:border-color .2s}
+.open-area:focus{outline:none;border-color:var(--navy)}
+/* BOXES */
+.note-box{background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:10px 14px;font-size:13px;color:#92400e;margin:12px 0;display:flex;gap:8px}
+.info-box{background:#eff6ff;border:1px solid #93c5fd;border-radius:6px;padding:10px 14px;font-size:13px;color:#1e40af;margin:12px 0;display:flex;gap:8px}
+.formula-box{background:#f8f4ff;border-left:4px solid var(--navy);padding:12px 16px;border-radius:0 6px 6px 0;font-family:monospace;font-size:14px;margin:12px 0;line-height:1.8}
+.submit-section{text-align:center;padding:8px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .4s ease forwards}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyAjHL3MztreUN7J7QKW3q_nRbiNoxLwA0E",
+  authDomain:"fina402-60e86.firebaseapp.com",
+  projectId:"fina402-60e86",
+  storageBucket:"fina402-60e86.firebasestorage.app",
+  messagingSenderId:"1058911893067",
+  appId:"1:1058911893067:web:0ab85f8a600d4fb8d2ffce"
+});
+</script>
+</head>
+<body>
+
+<header>
+  <div class="hdr-top">
+    <div class="hdr-logo">🎓 UNIVERSITY OF SAN DIEGO<br>Knauss School of Business</div>
+    <div class="hdr-title">
+      <h1>Mini Case 1: Cash Flows in Foreign Currencies</h1>
+      <p>FINA 405 — Int'l Financial Management &nbsp;|&nbsp; Fall 2026</p>
+    </div>
+    <div class="group-badge">Group <span id="groupNum">?</span></div>
+  </div>
+</header>
+
+<main>
+
+<!-- TEAM -->
+<div class="card">
+  <h2><span class="badge">👥</span> Team Members</h2>
+  <div class="team-grid" id="teamGrid"></div>
+</div>
+
+<!-- INSTRUCTIONS -->
+<div class="card">
+  <h2><span class="badge">📋</span> Instructions</h2>
+  <ol style="padding-left:20px;line-height:2.1;font-size:14px;color:#444">
+    <li>This is an <strong>in-class evaluation</strong>. You must attend to participate and submit.</li>
+    <li>Work <strong>only with your assigned group</strong>. No switching allowed.</li>
+    <li><strong>One submission per group</strong>. Coordinate before submitting.</li>
+    <li>If a member is <strong>not physically present</strong>, your group will receive a penalty.</li>
+    <li><strong>No AI tools</strong> or external materials not covered in class.</li>
+    <li>Complete all questions and submit by the end of class.</li>
+  </ol>
+  <div class="note-box" style="margin-top:14px">⚠️ <span><strong>Each group has different FX rates.</strong> Use only the rates shown in your data window (Section B).</span></div>
+</div>
+
+<!-- BALANCE SHEET -->
+<div class="card">
+  <h2><span class="badge">📊</span> DragonTech Ltd. — Balance Sheet (Q1 2026)</h2>
+  <p style="font-size:14px;color:#444;margin-bottom:14px">
+    You are the <strong>CFO of DragonTech Ltd.</strong>, a multinational technology firm <strong>domiciled in China</strong>.
+    DragonTech exports to Europe and Mexico, imports raw materials from the U.S., and reports all results in <strong>Chinese renminbi (CNY)</strong>.
+  </p>
+  <table class="bs-table">
+    <thead><tr><th>Balance Sheet Item</th><th>Currency</th><th>Amount</th></tr></thead>
+    <tbody>
+      <tr class="section-hdr"><td colspan="3">ASSETS</td></tr>
+      <tr><td>Cash &amp; Equivalents</td><td><span class="ccy ccy-cny">CNY</span></td><td>¥ 50,000,000</td></tr>
+      <tr class="fx-row"><td>Accounts Receivable — Europe</td><td><span class="ccy ccy-eur">EUR</span></td><td>€ 5,000,000</td></tr>
+      <tr class="fx-row"><td>Accounts Receivable — Mexico</td><td><span class="ccy ccy-mxn">MXN</span></td><td>MXN 30,000,000</td></tr>
+      <tr class="fx-row"><td>Prepaid Materials — U.S. Supplier</td><td><span class="ccy ccy-usd">USD</span></td><td>$ 8,000,000</td></tr>
+      <tr><td>Inventory</td><td><span class="ccy ccy-cny">CNY</span></td><td>¥ 120,000,000</td></tr>
+      <tr><td>Property &amp; Equipment</td><td><span class="ccy ccy-cny">CNY</span></td><td>¥ 200,000,000</td></tr>
+      <tr class="section-hdr"><td colspan="3">LIABILITIES</td></tr>
+      <tr class="fx-row"><td>Accounts Payable — U.S. Suppliers</td><td><span class="ccy ccy-usd">USD</span></td><td>$ 15,000,000</td></tr>
+      <tr class="fx-row"><td>Bank Loan — European Bank</td><td><span class="ccy ccy-eur">EUR</span></td><td>€ 3,000,000</td></tr>
+      <tr><td>Short-term Debt</td><td><span class="ccy ccy-cny">CNY</span></td><td>¥ 80,000,000</td></tr>
+      <tr><td>Long-term Debt</td><td><span class="ccy ccy-cny">CNY</span></td><td>¥ 150,000,000</td></tr>
+      <tr class="section-hdr"><td colspan="3">EQUITY</td></tr>
+      <tr><td>Shareholders' Equity</td><td><span class="ccy ccy-cny">CNY</span></td><td>¥ (residual)</td></tr>
+    </tbody>
+  </table>
+  <div class="info-box">ℹ️ <span>Highlighted rows contain items denominated in <strong>foreign currencies</strong>. Your group is assigned one currency to analyze in Q1b.</span></div>
+</div>
+
+<!-- Q1a: FUNCTIONAL CURRENCY -->
+<div class="card" id="cardQ1a">
+  <h2><span class="badge">Q1a</span> Functional Currency</h2>
+  <p style="font-size:14px;color:#444;margin-bottom:16px">Based on the balance sheet and DragonTech's primary operating environment, what is the company's <strong>functional currency</strong>?</p>
+  <div class="input-group" style="max-width:340px">
+    <label>Select the functional currency:</label>
+    <select id="q1a_sel" class="sel-input">
+      <option value="">— choose one —</option>
+      <option value="CNY">Chinese Renminbi (CNY)</option>
+      <option value="USD">US Dollar (USD)</option>
+      <option value="EUR">Euro (EUR)</option>
+      <option value="MXN">Mexican Peso (MXN)</option>
+    </select>
+  </div>
+  <button class="btn btn-primary" onclick="validateQ1a()">Verify ✓</button>
+  <div class="feedback" id="q1a_fb"></div>
+</div>
+
+<!-- Q1b: NET EXPOSURE (locked) -->
+<div id="wrapQ1b" class="section-locked">
+  <div class="lock-overlay" id="lockQ1b"><div class="lock-icon">🔒</div><div class="lock-msg">Answer Q1a correctly to unlock Q1b</div></div>
+  <div class="card">
+    <h2><span class="badge">Q1b</span> Net Currency Exposure</h2>
+    <div class="focus-banner">
+      <span>Your assigned currency:</span>
+      <span class="focus-badge" id="focusCcyLabel">—</span>
+      <span id="focusCcyName" style="color:#666;font-size:13px"></span>
+    </div>
+    <p style="font-size:14px;color:#444;margin-bottom:14px">From the balance sheet, does DragonTech have <strong>net assets</strong> or <strong>net liabilities</strong> in your assigned currency? Compute the net amount in that currency.</p>
+    <div class="g2">
+      <div class="input-group">
+        <label>Net position:</label>
+        <select id="q1b_type" class="sel-input">
+          <option value="">— choose —</option>
+          <option value="assets">Net Assets (assets &gt; liabilities)</option>
+          <option value="liabilities">Net Liabilities (liabilities &gt; assets)</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Net amount (in foreign currency)</label>
+        <input id="q1b_amt" class="num-input" type="text" placeholder="e.g. 1,000,000">
+        <div class="hint">Absolute value in the foreign currency — no CNY conversion needed</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="validateQ1b()">Verify ✓</button>
+    <div class="feedback" id="q1b_fb"></div>
+  </div>
+</div>
+
+<!-- Q1c: FX CHART + RISK (locked) -->
+<div id="wrapQ1c" class="section-locked">
+  <div class="lock-overlay" id="lockQ1c"><div class="lock-icon">🔒</div><div class="lock-msg">Answer Q1b correctly to unlock Q1c</div></div>
+  <div class="card">
+    <h2><span class="badge">Q1c</span> Exchange Rate Risk Scenario</h2>
+    <p style="font-size:13px;color:#555;margin-bottom:12px">The chart below shows the <strong id="chartPairLabel">—</strong> exchange rate over the past 12 months (stylized).</p>
+    <canvas id="fxChart" width="840" height="210" style="width:100%;border-radius:6px;background:#f8fafc"></canvas>
+    <div style="margin-top:16px">
+      <p style="font-size:14px;color:#444;margin-bottom:8px;font-weight:600">Risk Scenario Analysis:</p>
+      <p style="font-size:13px;color:#555;margin-bottom:10px">Based on the chart and DragonTech's net position in your assigned currency, which scenario — <em>appreciation</em> or <em>depreciation</em> of which currency — would <strong>hurt</strong> DragonTech's financial results? Explain in terms of the balance sheet exposure.</p>
+      <textarea id="q1c_text" class="open-area" placeholder="Identify the risk direction (appreciation or depreciation of which currency) and explain the balance sheet impact on DragonTech in CNY terms..."></textarea>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="validateQ1c()">Save &amp; Unlock FX Analysis ↓</button>
+      <div class="feedback" id="q1c_fb"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION B (locked until A complete) ═══ -->
+<div id="sectionB" class="section-locked">
+  <div class="lock-overlay" id="lockB">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-msg">Complete Q1a → Q1b → Q1c to unlock the FX Analysis</div>
+  </div>
+
+  <!-- FX DATA WINDOW -->
+  <div class="card">
+    <h2><span class="badge">📈</span> Your Group's FX Data</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">These spot rates are assigned to your group. Use them for all calculations below.</p>
+    <div class="fx-box">
+      <div style="font-size:12px;opacity:.7;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px">Group <span id="fxGrpNum">?</span> — Spot FX Rates</div>
+      <div class="fx-grid">
+        <div class="fx-item"><div class="fx-label">EUR / USD</div><div class="fx-val" id="d_eurUsd">—</div><div class="fx-pair">USD per Euro</div></div>
+        <div class="fx-item"><div class="fx-label">USD / MXN</div><div class="fx-val" id="d_usdMxn">—</div><div class="fx-pair">Pesos per Dollar</div></div>
+        <div class="fx-item"><div class="fx-label">USD / CNY</div><div class="fx-val" id="d_usdCny">—</div><div class="fx-pair">Yuan per Dollar</div></div>
+      </div>
+    </div>
+    <div class="info-box" style="margin-top:0">ℹ️ <span>DragonTech Q1 transactions: <strong>Sales Europe €10,000,000</strong> &nbsp;|&nbsp; <strong>Sales Mexico MXN 50,000,000</strong> &nbsp;|&nbsp; <strong>U.S. Purchases $15,000,000</strong></span></div>
+  </div>
+
+  <!-- Q2: CROSS-RATES -->
+  <div class="card">
+    <h2><span class="badge">Q2</span> Cross-Rates</h2>
+    <p style="font-size:14px;color:#444;margin-bottom:10px">Using your group's spot rates, compute the two cross-rates needed to convert DragonTech's cash flows to CNY.</p>
+    <div class="formula-box">
+      CNY/MXN = USD/MXN ÷ USD/CNY<br>
+      CNY/EUR = 1 ÷ (EUR/USD × USD/CNY)
+    </div>
+    <div class="g2" style="margin-top:12px">
+      <div class="input-group">
+        <label>CNY / MXN</label>
+        <input id="q2_cnyMxn" class="num-input" type="text" placeholder="0.0000">
+        <div class="hint">Yuan per Mexican peso</div>
+      </div>
+      <div class="input-group">
+        <label>CNY / EUR</label>
+        <input id="q2_cnyEur" class="num-input" type="text" placeholder="0.0000">
+        <div class="hint">Yuan per Euro (will be &lt; 1)</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="validateQ2()">Verify ✓</button>
+    <div class="feedback" id="q2_fb"></div>
+  </div>
+
+  <!-- Q3: CASH FLOWS (locked until Q2) -->
+  <div id="wrapQ3" class="section-locked">
+    <div class="lock-overlay" id="lockQ3"><div class="lock-icon">🔒</div><div class="lock-msg">Answer Q2 correctly to unlock Q3</div></div>
+    <div class="card">
+      <h2><span class="badge">Q3</span> Cash Flows in CNY — Net Revenue</h2>
+      <p style="font-size:14px;color:#444;margin-bottom:10px">Convert each transaction to CNY using your cross-rates from Q2. Then compute the net revenue.</p>
+      <div class="formula-box">
+        Sales EUR → CNY: €10M ÷ CNY/EUR<br>
+        Sales MXN → CNY: MXN 50M ÷ CNY/MXN<br>
+        Cost USD → CNY: $15M × USD/CNY<br>
+        Net Revenue = Sales EUR(CNY) + Sales MXN(CNY) − Cost USD(CNY)
+      </div>
+      <div class="g4" style="margin-top:14px">
+        <div class="input-group">
+          <label>Sales Europe (CNY)</label>
+          <input id="q3_eurCny" class="num-input" type="text" placeholder="e.g. 70,000,000">
+        </div>
+        <div class="input-group">
+          <label>Sales Mexico (CNY)</label>
+          <input id="q3_mxnCny" class="num-input" type="text" placeholder="e.g. 17,000,000">
+        </div>
+        <div class="input-group">
+          <label>Cost U.S. (CNY)</label>
+          <input id="q3_usdCny" class="num-input" type="text" placeholder="e.g. 95,000,000">
+        </div>
+        <div class="input-group">
+          <label>Net Revenue (CNY)</label>
+          <input id="q3_net" class="num-input" type="text" placeholder="can be negative">
+        </div>
+      </div>
+      <div class="input-group" style="margin-top:18px;border-top:1px dashed #dde2ea;padding-top:16px">
+        <label style="font-weight:700;color:var(--navy);font-size:14px">📝 Analysis — Interpret Your Results</label>
+        <p style="font-size:13px;color:#555;margin:6px 0 8px">Looking at your three CNY amounts, which transaction leg (European sales, Mexican sales, or U.S. purchases) had the largest impact on net revenue? Is DragonTech profitable from its international operations this quarter? Reference your specific numbers in your explanation.</p>
+        <textarea id="q3_analysis" class="open-area" placeholder="Identify the dominant leg, state whether net revenue is positive or negative, and explain what that means for DragonTech's international business..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="validateQ3()">Verify ✓</button>
+      <div class="feedback" id="q3_fb"></div>
+    </div>
+  </div>
+
+  <!-- Q4: USD SHOCK (locked until Q3) -->
+  <div id="wrapQ4" class="section-locked">
+    <div class="lock-overlay" id="lockQ4"><div class="lock-icon">🔒</div><div class="lock-msg">Answer Q3 correctly to unlock Q4</div></div>
+    <div class="card">
+      <h2><span class="badge">Q4</span> USD Depreciation — New FX Rates</h2>
+      <p style="font-size:14px;color:#444;margin-bottom:10px">The Fed cuts rates and the <strong>USD depreciates 5%</strong>. Recompute all five rates.</p>
+      <div class="note-box">⚠️ <span>A weaker USD: needs more USD to buy 1 EUR → EUR/USD ↑ &nbsp;|&nbsp; buys fewer pesos → USD/MXN ↓ &nbsp;|&nbsp; buys fewer yuan → USD/CNY ↓</span></div>
+      <div class="g3" style="margin-top:12px">
+        <div class="input-group">
+          <label>New EUR / USD</label>
+          <input id="q4_eurUsd" class="num-input" type="text" placeholder="0.0000">
+        </div>
+        <div class="input-group">
+          <label>New USD / MXN</label>
+          <input id="q4_usdMxn" class="num-input" type="text" placeholder="0.0000">
+        </div>
+        <div class="input-group">
+          <label>New USD / CNY</label>
+          <input id="q4_usdCny" class="num-input" type="text" placeholder="0.0000">
+        </div>
+      </div>
+      <p style="font-size:13px;color:#555;margin:4px 0 10px">Recompute the cross-rates with the new spot rates:</p>
+      <div class="g2">
+        <div class="input-group">
+          <label>New CNY / MXN</label>
+          <input id="q4_cnyMxn" class="num-input" type="text" placeholder="0.0000">
+        </div>
+        <div class="input-group">
+          <label>New CNY / EUR</label>
+          <input id="q4_cnyEur" class="num-input" type="text" placeholder="0.0000">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="validateQ4()">Verify ✓</button>
+      <div class="feedback" id="q4_fb"></div>
+    </div>
+  </div>
+
+  <!-- Q5: NEW NET REVENUE (locked until Q4) -->
+  <div id="wrapQ5" class="section-locked">
+    <div class="lock-overlay" id="lockQ5"><div class="lock-icon">🔒</div><div class="lock-msg">Answer Q4 correctly to unlock Q5</div></div>
+    <div class="card">
+      <h2><span class="badge">Q5</span> Impact on Net Revenue</h2>
+      <p style="font-size:14px;color:#444;margin-bottom:10px">Using the new rates from Q4, recompute DragonTech's cash flows. <em>Hint: do you need to recompute EUR and MXN sales? Why or why not?</em></p>
+      <div class="g2">
+        <div class="input-group">
+          <label>New Cost U.S. Purchases (CNY)</label>
+          <input id="q5_usdCny" class="num-input" type="text" placeholder="e.g. 90,000,000">
+        </div>
+        <div class="input-group">
+          <label>New Net Revenue (CNY)</label>
+          <input id="q5_net" class="num-input" type="text" placeholder="can be positive or negative">
+        </div>
+      </div>
+      <div class="input-group" style="margin-top:18px;border-top:1px dashed #dde2ea;padding-top:16px">
+        <label style="font-weight:700;color:var(--navy);font-size:14px">📝 Analysis — The Cross-Rate Insight</label>
+        <p style="font-size:13px;color:#555;margin:6px 0 8px">Notice that your EUR and MXN sales in CNY did not change after the USD depreciation — only the USD cost changed. Explain <em>why</em> this happens using the mathematics of cross-rates. Then state whether DragonTech is a net winner or loser from USD depreciation and justify your answer using your numbers.</p>
+        <textarea id="q5_analysis" class="open-area" placeholder="Explain the cross-rate mechanics, then take a clear position on whether USD depreciation helps or hurts DragonTech and why..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="validateQ5()">Verify ✓</button>
+      <div class="feedback" id="q5_fb"></div>
+    </div>
+  </div>
+
+  <!-- Q6: MISPRICING (locked until Q5) -->
+  <div id="wrapQ6" class="section-locked">
+    <div class="lock-overlay" id="lockQ6"><div class="lock-icon">🔒</div><div class="lock-msg">Answer Q5 correctly to unlock Q6</div></div>
+    <div class="card">
+      <h2><span class="badge">Q6</span> Mispricing Analysis</h2>
+      <p style="font-size:14px;color:#444;margin-bottom:10px">
+        Chase Bank quotes <strong>CNY/EUR = <span id="chaseDisplay">—</span></strong> directly.
+        Your group computed the <em>implicit</em> CNY/EUR in Q2.
+      </p>
+      <div class="formula-box">Mispricing Factor: M = Implicit CNY/EUR ÷ Chase Direct Quote</div>
+      <div class="g2" style="margin-top:12px">
+        <div class="input-group">
+          <label>Mispricing Factor M</label>
+          <input id="q6_m" class="num-input" type="text" placeholder="0.000">
+          <div class="hint">Round to 3 decimal places</div>
+        </div>
+        <div class="input-group">
+          <label>Is the CNY overpriced or underpriced at Chase?</label>
+          <select id="q6_dir" class="sel-input" style="font-family:inherit">
+            <option value="">— choose —</option>
+            <option value="overpriced">Overpriced (M &lt; 1)</option>
+            <option value="underpriced">Underpriced (M &gt; 1)</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-group">
+        <label style="font-weight:700;color:var(--navy);font-size:14px">📝 Analysis — Exploiting the Mispricing</label>
+        <p style="font-size:13px;color:#555;margin:6px 0 8px">Based on your M value, is the yuan overpriced or underpriced at Chase relative to the market-implied rate? If DragonTech's treasury team wanted to profit from this discrepancy, describe the specific steps of the trade they would execute — which currencies, which direction, in what order. Then identify at least one real-world friction that might prevent them from exploiting this in practice.</p>
+        <textarea id="q6_text" class="open-area" placeholder="Describe the arbitrage trade step by step (buy/sell what, with whom), then name a real-world friction that limits it (e.g., transaction costs, bid-ask spreads, counterparty limits)..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="validateQ6()">Verify ✓</button>
+      <div class="feedback" id="q6_fb"></div>
+    </div>
+  </div>
+
+</div><!-- end sectionB -->
+
+<!-- SUBMIT -->
+<div class="card submit-section">
+  <h2 style="justify-content:center"><span class="badge">✅</span> Submit Your Work</h2>
+  <p style="font-size:14px;color:var(--muted);margin-bottom:16px">Review all answers before submitting. Only one submission per group is recorded.</p>
+  <button class="btn btn-success" id="submitBtn" onclick="submitToFirebase()" style="font-size:15px;padding:12px 40px">📤 SUBMIT</button>
+  <div id="submitResult" style="margin-top:16px"></div>
+</div>
+
+</main>
+
+<script>
+// ─── DATA ───────────────────────────────────────
+const GROUPS = [
+  {grupo:1,section:1,group:1},{grupo:2,section:1,group:2},{grupo:3,section:1,group:3},
+  {grupo:4,section:1,group:4},{grupo:5,section:1,group:5},{grupo:6,section:1,group:6},
+  {grupo:7,section:1,group:7},{grupo:8,section:1,group:8},{grupo:9,section:1,group:9},
+  {grupo:10,section:1,group:10}
+];
+
+// focus: currency to analyze in Q1b/Q1c
+// netPos: 'assets' or 'liabilities'   netAmt: absolute amount in foreign currency
+// chase: Chase direct CNY/EUR quote
+const ANSWERS = [
+  {grupo:1,  eurUsd:1.1856, usdMxn:18.3156, usdCny:7.1036, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.13},
+  {grupo:2,  eurUsd:1.2020, usdMxn:18.1500, usdCny:7.0850, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.13},
+  {grupo:3,  eurUsd:1.1700, usdMxn:18.4800, usdCny:7.1200, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.14},
+  {grupo:4,  eurUsd:1.2150, usdMxn:18.0200, usdCny:7.0600, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.10},
+  {grupo:5,  eurUsd:1.1580, usdMxn:18.6500, usdCny:7.1500, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.10},
+  {grupo:6,  eurUsd:1.1980, usdMxn:17.9800, usdCny:7.0400, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.12},
+  {grupo:7,  eurUsd:1.2100, usdMxn:18.4200, usdCny:7.1800, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.14},
+  {grupo:8,  eurUsd:1.1750, usdMxn:18.5800, usdCny:6.9800, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.13},
+  {grupo:9,  eurUsd:1.1920, usdMxn:17.8500, usdCny:7.2000, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.14},
+  {grupo:10, eurUsd:1.1650, usdMxn:18.2500, usdCny:7.0700, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.11}
+];
+
+const FOCUS_INFO = {
+  EUR:{label:'Euro (EUR)',   chartPair:'EUR/CNY (yuan per euro)'},
+  MXN:{label:'Mexican Peso (MXN)', chartPair:'MXN/CNY (yuan per peso)'},
+  USD:{label:'US Dollar (USD)', chartPair:'USD/CNY (yuan per dollar)'}
+};
+
+// ─── HELPERS ────────────────────────────────────
+function near(a,b,pct=0.025){return Math.abs(a-b)<=Math.abs(b)*pct+0.01;}
+function showFB(id,ok,msg){
+  const el=document.getElementById(id);
+  el.style.display='flex'; el.className='feedback '+(ok?'ok':'err');
+  el.textContent=(ok?'✓ ':'✗ ')+msg;
+}
+function unlock(wrapId,lockId){
+  const wrap=document.getElementById(wrapId), lock=document.getElementById(lockId);
+  if(!wrap||!lock)return;
+  lock.style.transition='opacity .5s'; lock.style.opacity='0';
+  setTimeout(()=>{wrap.classList.remove('section-locked');lock.remove();wrap.classList.add('fade-in');},500);
+}
+function fmtBig(n){return Math.round(n).toLocaleString('en-US');}
+
+// ─── INIT ────────────────────────────────────────
+const _p=new URLSearchParams(location.search);
+const _sec=parseInt(_p.get('seccion')||'0');
+const _grp=parseInt(_p.get('grupo')||'1');
+let gNum=_grp, G, A, _submitted=false;
+
+async function resolveGroupAndStart(){
+  if(_sec>0){
+    try{
+      const hub=await firebase.firestore().collection('minicase_hub405').doc('config').get();
+      if(hub.exists){
+        const cfg=hub.data(), secs=cfg.minicases?.[0]?.sections||[];
+        let off=0;
+        for(let s=0;s<_sec-1&&s<secs.length;s++) off+=(secs[s].groups||10);
+        gNum=((off+_grp-1)%GROUPS.length)+1;
+      } else { gNum=((_sec-1)*10+_grp-1)%GROUPS.length+1; }
+    } catch(e){ gNum=((_sec-1)*10+_grp-1)%GROUPS.length+1; }
+  }
+  G=GROUPS.find(g=>g.grupo===gNum);
+  A=ANSWERS.find(a=>a.grupo===gNum);
+  if(!G||!A){document.body.innerHTML='<p style="padding:40px;color:red">Group not found — check URL parameters.</p>';return;}
+
+  document.getElementById('groupNum').textContent=gNum;
+  if(_sec>0){const gb=document.getElementById('groupNum');if(gb?.parentElement) gb.parentElement.innerHTML='Sec '+_sec+' · Grp '+_grp;}
+
+  // Team inputs
+  const tg=document.getElementById('teamGrid');
+  tg.innerHTML=[1,2,3,4,5].map(i=>`<input class="team-input" id="tm${i}" type="text" placeholder="Team member ${i}">`).join('');
+
+  // FX data window
+  document.getElementById('fxGrpNum').textContent=gNum;
+  document.getElementById('d_eurUsd').textContent=A.eurUsd.toFixed(4);
+  document.getElementById('d_usdMxn').textContent=A.usdMxn.toFixed(4);
+  document.getElementById('d_usdCny').textContent=A.usdCny.toFixed(4);
+
+  // Focus currency info (for Q1b/Q1c)
+  const fi=FOCUS_INFO[A.focus];
+  document.getElementById('focusCcyLabel').textContent=A.focus;
+  document.getElementById('focusCcyName').textContent='— '+fi.label;
+  document.getElementById('chartPairLabel').textContent=fi.chartPair;
+  document.getElementById('chaseDisplay').textContent=A.chase.toFixed(4);
+
+  drawFXChart();
+
+  // ── check if already submitted ──────────────────
+  try{
+    const _docId=`mc1_sec${_sec}_grp${_grp}`;
+    const existing=await firebase.firestore().collection('mc405_submissions').doc(_docId).get();
+    if(existing.exists){
+      _submitted=true;
+      const ts=existing.data().submittedAt
+        ? new Date(existing.data().submittedAt).toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})
+        : '';
+      document.getElementById('submitBtn').style.display='none';
+      document.getElementById('submitResult').innerHTML=`
+        <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:10px;padding:18px 22px;text-align:center;color:#78350f;margin-top:12px">
+          <div style="font-size:28px;margin-bottom:6px">📋</div>
+          <strong style="font-size:15px">Este grupo ya entregó su minicase</strong><br>
+          <span style="font-size:13px;opacity:.85">${ts?'Entrega registrada: '+ts+'.':''} Si necesitas hacer cambios, contacta al instructor.</span>
+        </div>`;
+    }
+  } catch(e){ /* network error — allow submission attempt */ }
+}
+
+// ─── FX CHART ────────────────────────────────────
+function drawFXChart(){
+  const cv=document.getElementById('fxChart');
+  if(!cv||!A)return;
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  const PAD={top:28,right:24,bottom:38,left:72};
+  const cW=W-PAD.left-PAD.right,cH=H-PAD.top-PAD.bottom;
+
+  // Base rate for chosen currency pair
+  const base = A.focus==='EUR' ? A.eurUsd*A.usdCny :
+               A.focus==='MXN' ? A.usdMxn/A.usdCny :
+               A.usdCny;
+
+  // Pseudo-random walk (deterministic by gNum)
+  const n=52; const pts=[]; let v=base*0.96;
+  for(let i=0;i<n;i++){
+    const r=Math.sin(gNum*0.7+i*0.43)*0.45+Math.cos(i*0.19+gNum*1.3)*0.35;
+    v+=r*base*0.007; v=Math.max(base*0.88,Math.min(base*1.12,v)); pts.push(v);
+  }
+  pts.push(base);
+
+  const minV=Math.min(...pts)*0.997, maxV=Math.max(...pts)*1.003;
+  const xS=i=>PAD.left+i/(pts.length-1)*cW;
+  const yS=v=>PAD.top+cH-(v-minV)/(maxV-minV)*cH;
+
+  ctx.clearRect(0,0,W,H); ctx.fillStyle='#f8fafc'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1;
+  for(let i=0;i<=3;i++){
+    const yr=minV+i*(maxV-minV)/3;
+    ctx.beginPath();ctx.moveTo(PAD.left,yS(yr));ctx.lineTo(PAD.left+cW,yS(yr));ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.textAlign='right';
+    ctx.fillText(yr.toFixed(4),PAD.left-5,yS(yr)+4);
+  }
+  ['Jan','Apr','Jul','Oct','Jan'].forEach((m,i)=>{
+    const x=PAD.left+i*cW/4;
+    ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(m,x,PAD.top+cH+16);
+  });
+  ctx.fillStyle='#475569';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('2025 — 2026',PAD.left+cW/2,H-4);
+  ctx.save();ctx.translate(14,PAD.top+cH/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText(FOCUS_INFO[A.focus].chartPair,0,0);ctx.restore();
+
+  // Area
+  ctx.beginPath();
+  pts.forEach((v,i)=>{i===0?ctx.moveTo(xS(i),yS(v)):ctx.lineTo(xS(i),yS(v));});
+  ctx.lineTo(xS(pts.length-1),yS(minV));ctx.lineTo(xS(0),yS(minV));ctx.closePath();
+  ctx.fillStyle='rgba(37,99,235,0.07)';ctx.fill();
+  // Line
+  ctx.beginPath();ctx.strokeStyle='#2563eb';ctx.lineWidth=2.5;
+  pts.forEach((v,i)=>{i===0?ctx.moveTo(xS(i),yS(v)):ctx.lineTo(xS(i),yS(v));});
+  ctx.stroke();
+  // Current dot
+  ctx.beginPath();ctx.arc(xS(pts.length-1),yS(base),5,0,2*Math.PI);
+  ctx.fillStyle='#c49a3c';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#c49a3c';ctx.font='bold 11px sans-serif';ctx.textAlign='right';
+  ctx.fillText('Current: '+base.toFixed(4),xS(pts.length-1)-8,yS(base)-8);
+}
+
+// ─── COMPUTED EXPECTED VALUES ────────────────────
+function exp(){
+  const e=A.eurUsd,m=A.usdMxn,c=A.usdCny;
+  const cnyMxn=m/c, cnyEur=1/(e*c);
+  const sEur=10000000/cnyEur, sMxn=50000000/cnyMxn, cUsd=15000000*c;
+  const net=sEur+sMxn-cUsd;
+  const nE=e/0.95, nM=m*0.95, nC=c*0.95;
+  const nCnyMxn=nM/nC, nCnyEur=1/(nE*nC);
+  const nCUsd=15000000*nC, nNet=sEur+sMxn-nCUsd;
+  const M=cnyEur/A.chase, dir=M<1?'overpriced':'underpriced';
+  return {cnyMxn,cnyEur,sEur,sMxn,cUsd,net,nE,nM,nC,nCnyMxn,nCnyEur,nCUsd,nNet,M,dir};
+}
+
+// ─── SECTION A ───────────────────────────────────
+function validateQ1a(){
+  const v=document.getElementById('q1a_sel').value;
+  if(!v){showFB('q1a_fb',false,'Please select a currency.');return;}
+  if(v==='CNY'){
+    document.getElementById('q1a_sel').className='sel-input ok';
+    showFB('q1a_fb',true,'Correct! DragonTech is domiciled in China — CNY is the functional currency. Q1b unlocked ↓');
+    setTimeout(()=>unlock('wrapQ1b','lockQ1b'),600);
+  } else {
+    document.getElementById('q1a_sel').className='sel-input err';
+    showFB('q1a_fb',false,'Incorrect. Consider where DragonTech is domiciled and where its primary operations and reporting are based.');
+  }
+}
+
+function validateQ1b(){
+  const type=document.getElementById('q1b_type').value;
+  const amt=parseFloat(document.getElementById('q1b_amt').value.replace(/,/g,''));
+  if(!type){showFB('q1b_fb',false,'Please select net assets or net liabilities.');return;}
+  if(isNaN(amt)){showFB('q1b_fb',false,'Please enter the net amount.');return;}
+  const typeOk=type===A.netPos;
+  const amtOk=Math.abs(amt-A.netAmt)<=A.netAmt*0.01;
+  if(typeOk&&amtOk){
+    showFB('q1b_fb',true,`Correct! DragonTech has net ${A.netPos} of ${A.focus} ${fmtBig(A.netAmt)}. Q1c unlocked ↓`);
+    setTimeout(()=>{unlock('wrapQ1c','lockQ1c');setTimeout(drawFXChart,700);},600);
+  } else if(!typeOk){
+    showFB('q1b_fb',false,`Position type is incorrect — recheck the ${A.focus}-denominated items in the balance sheet.`);
+  } else {
+    showFB('q1b_fb',false,`Position type is correct, but the amount doesn't match. Recheck all ${A.focus} assets and liabilities.`);
+  }
+}
+
+function validateQ1c(){
+  const txt=document.getElementById('q1c_text').value.trim();
+  if(txt.length<60){showFB('q1c_fb',false,'Please provide a more complete answer (minimum 2–3 sentences).');return;}
+  showFB('q1c_fb',true,'Analysis saved. Section B — FX calculations are now unlocked ↓');
+  setTimeout(()=>unlock('sectionB','lockB'),600);
+}
+
+// ─── SECTION B ───────────────────────────────────
+function validateQ2(){
+  const v1=parseFloat(document.getElementById('q2_cnyMxn').value);
+  const v2=parseFloat(document.getElementById('q2_cnyEur').value);
+  if(isNaN(v1)||isNaN(v2)){showFB('q2_fb',false,'Please enter both cross-rates.');return;}
+  const x=exp(); const ok1=near(v1,x.cnyMxn), ok2=near(v2,x.cnyEur);
+  document.getElementById('q2_cnyMxn').className='num-input '+(ok1?'ok':'err');
+  document.getElementById('q2_cnyEur').className='num-input '+(ok2?'ok':'err');
+  if(ok1&&ok2){
+    showFB('q2_fb',true,`Correct! CNY/MXN ≈ ${x.cnyMxn.toFixed(4)}, CNY/EUR ≈ ${x.cnyEur.toFixed(4)}. Q3 unlocked ↓`);
+    setTimeout(()=>unlock('wrapQ3','lockQ3'),600);
+  } else {
+    const msgs=[];
+    if(!ok1) msgs.push('CNY/MXN: use USD/MXN ÷ USD/CNY.');
+    if(!ok2) msgs.push('CNY/EUR: use 1 ÷ (EUR/USD × USD/CNY).');
+    showFB('q2_fb',false,msgs.join(' '));
+  }
+}
+
+function validateQ3(){
+  const vE=parseFloat(document.getElementById('q3_eurCny').value.replace(/,/g,''));
+  const vM=parseFloat(document.getElementById('q3_mxnCny').value.replace(/,/g,''));
+  const vU=parseFloat(document.getElementById('q3_usdCny').value.replace(/,/g,''));
+  const vN=parseFloat(document.getElementById('q3_net').value.replace(/,/g,''));
+  if([vE,vM,vU,vN].some(isNaN)){showFB('q3_fb',false,'Please fill all four fields.');return;}
+  const x=exp();
+  const ok=[near(vE,x.sEur),near(vM,x.sMxn),near(vU,x.cUsd),near(vN,x.net)];
+  [['q3_eurCny',ok[0]],['q3_mxnCny',ok[1]],['q3_usdCny',ok[2]],['q3_net',ok[3]]].forEach(([id,o])=>{
+    document.getElementById(id).className='num-input '+(o?'ok':'err');
+  });
+  if(ok.every(Boolean)){
+    const txt3=document.getElementById('q3_analysis').value.trim();
+    if(txt3.length<60){showFB('q3_fb',false,'Numbers are correct ✓ — complete your analysis below before unlocking Q4.');return;}
+    showFB('q3_fb',true,`Correct! Net revenue ≈ ${fmtBig(x.net)} CNY. Q4 unlocked ↓`);
+    setTimeout(()=>unlock('wrapQ4','lockQ4'),600);
+  } else {
+    const msgs=[];
+    if(!ok[0]) msgs.push('EUR sales: divide €10M by CNY/EUR.');
+    if(!ok[1]) msgs.push('MXN sales: divide MXN 50M by CNY/MXN.');
+    if(!ok[2]) msgs.push('USD cost: multiply $15M × USD/CNY.');
+    if(!ok[3]) msgs.push('Net revenue: Sales EUR + Sales MXN − Cost USD.');
+    showFB('q3_fb',false,msgs.join(' '));
+  }
+}
+
+function validateQ4(){
+  const vE=parseFloat(document.getElementById('q4_eurUsd').value);
+  const vM=parseFloat(document.getElementById('q4_usdMxn').value);
+  const vC=parseFloat(document.getElementById('q4_usdCny').value);
+  const vCM=parseFloat(document.getElementById('q4_cnyMxn').value);
+  const vCE=parseFloat(document.getElementById('q4_cnyEur').value);
+  if([vE,vM,vC,vCM,vCE].some(isNaN)){showFB('q4_fb',false,'Please fill all five fields.');return;}
+  const x=exp();
+  const ok=[near(vE,x.nE),near(vM,x.nM),near(vC,x.nC),near(vCM,x.nCnyMxn),near(vCE,x.nCnyEur)];
+  [['q4_eurUsd',ok[0]],['q4_usdMxn',ok[1]],['q4_usdCny',ok[2]],['q4_cnyMxn',ok[3]],['q4_cnyEur',ok[4]]].forEach(([id,o])=>{
+    document.getElementById(id).className='num-input '+(o?'ok':'err');
+  });
+  if(ok.every(Boolean)){
+    showFB('q4_fb',true,'Correct! Notice: the CNY cross-rates did not change — MXN, EUR and CNY all moved proportionally vs USD. Q5 unlocked ↓');
+    setTimeout(()=>unlock('wrapQ5','lockQ5'),600);
+  } else {
+    const msgs=[];
+    if(!ok[0]) msgs.push('EUR/USD ↑: new = old / 0.95.');
+    if(!ok[1]) msgs.push('USD/MXN ↓: new = old × 0.95.');
+    if(!ok[2]) msgs.push('USD/CNY ↓: new = old × 0.95.');
+    if(!ok[3]||!ok[4]) msgs.push('Cross-rates: recompute with the new spot rates.');
+    showFB('q4_fb',false,msgs.join(' '));
+  }
+}
+
+function validateQ5(){
+  const vU=parseFloat(document.getElementById('q5_usdCny').value.replace(/,/g,''));
+  const vN=parseFloat(document.getElementById('q5_net').value.replace(/,/g,''));
+  if(isNaN(vU)||isNaN(vN)){showFB('q5_fb',false,'Please fill both fields.');return;}
+  const x=exp();
+  const ok1=near(vU,x.nCUsd), ok2=near(vN,x.nNet);
+  document.getElementById('q5_usdCny').className='num-input '+(ok1?'ok':'err');
+  document.getElementById('q5_net').className='num-input '+(ok2?'ok':'err');
+  if(ok1&&ok2){
+    const txt5=document.getElementById('q5_analysis').value.trim();
+    if(txt5.length<60){showFB('q5_fb',false,'Numbers are correct ✓ — complete your analysis below before unlocking Q6.');return;}
+    const chg=x.nNet-x.net;
+    showFB('q5_fb',true,`Correct! New net revenue ≈ ${fmtBig(x.nNet)} CNY — an improvement of ${fmtBig(chg)} CNY. USD depreciation reduced import costs! Q6 unlocked ↓`);
+    setTimeout(()=>unlock('wrapQ6','lockQ6'),600);
+  } else {
+    const msgs=[];
+    if(!ok1) msgs.push('New USD cost: $15M × new USD/CNY.');
+    if(!ok2) msgs.push('Remember: EUR and MXN sales in CNY are unchanged (cross-rates stayed the same).');
+    showFB('q5_fb',false,msgs.join(' '));
+  }
+}
+
+function validateQ6(){
+  const vM=parseFloat(document.getElementById('q6_m').value);
+  const vDir=document.getElementById('q6_dir').value;
+  const txt=document.getElementById('q6_text').value.trim();
+  if(isNaN(vM)||!vDir){showFB('q6_fb',false,'Please enter M and select the direction.');return;}
+  const x=exp();
+  const mOk=near(vM,x.M,0.03), dirOk=vDir===x.dir;
+  document.getElementById('q6_m').className='num-input '+(mOk?'ok':'err');
+  document.getElementById('q6_dir').className='sel-input '+(dirOk?'ok':'err');
+  if(mOk&&dirOk&&txt.length>=60){
+    showFB('q6_fb',true,`Correct! M ≈ ${x.M.toFixed(3)} → CNY is ${x.dir} at Chase. You may now submit.`);
+  } else {
+    const msgs=[];
+    if(!mOk) msgs.push('Check your formula: M = implicit CNY/EUR (from Q2) ÷ Chase direct quote.');
+    if(!dirOk) msgs.push('M < 1: Chase values CNY higher than the market → CNY overpriced. M > 1: opposite.');
+    if(txt.length<60) msgs.push('Provide a more complete explanation.');
+    showFB('q6_fb',false,msgs.join(' '));
+  }
+}
+
+// ─── SUBMIT ──────────────────────────────────────
+async function submitToFirebase(){
+  if(_submitted){return;}
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true; btn.textContent='⏳ Verificando…';
+  // Safety check: confirm no submission exists yet
+  const _docId=`mc1_sec${_sec}_grp${_grp}`;
+  try{
+    const existing=await firebase.firestore().collection('mc405_submissions').doc(_docId).get();
+    if(existing.exists){
+      _submitted=true;
+      btn.style.display='none';
+      document.getElementById('submitResult').innerHTML=`
+        <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:10px;padding:18px 22px;text-align:center;color:#78350f;margin-top:12px">
+          <div style="font-size:28px;margin-bottom:6px">📋</div>
+          <strong style="font-size:15px">Este grupo ya entregó su minicase</strong><br>
+          <span style="font-size:13px;opacity:.85">Si necesitas hacer cambios, contacta al instructor.</span>
+        </div>`;
+      return;
+    }
+  }catch(e){/* network hiccup — proceed */}
+  btn.textContent='⏳ Guardando…';
+  const team=[1,2,3,4,5].map(i=>document.getElementById('tm'+i)?.value.trim()).filter(Boolean);
+  const x=exp();
+  const data={
+    section:_sec,group:_grp,gNum,team,submittedAt:new Date().toISOString(),
+    rates:{eurUsd:A.eurUsd,usdMxn:A.usdMxn,usdCny:A.usdCny},
+    q1a:{functional:document.getElementById('q1a_sel').value},
+    q1b:{netType:document.getElementById('q1b_type').value,netAmt:document.getElementById('q1b_amt').value},
+    q1c:{riskNarrative:document.getElementById('q1c_text').value},
+    q2:{cnyMxn:document.getElementById('q2_cnyMxn').value,cnyEur:document.getElementById('q2_cnyEur').value},
+    q3:{salesEur:document.getElementById('q3_eurCny').value,salesMxn:document.getElementById('q3_mxnCny').value,costUsd:document.getElementById('q3_usdCny').value,netRev:document.getElementById('q3_net').value,analysis:document.getElementById('q3_analysis').value},
+    q4:{eurUsd:document.getElementById('q4_eurUsd').value,usdMxn:document.getElementById('q4_usdMxn').value,usdCny:document.getElementById('q4_usdCny').value,cnyMxn:document.getElementById('q4_cnyMxn').value,cnyEur:document.getElementById('q4_cnyEur').value},
+    q5:{costUsd:document.getElementById('q5_usdCny').value,netRev:document.getElementById('q5_net').value,analysis:document.getElementById('q5_analysis').value},
+    q6:{m:document.getElementById('q6_m').value,direction:document.getElementById('q6_dir').value,explanation:document.getElementById('q6_text').value},
+    _exp:{cnyMxn:x.cnyMxn,cnyEur:x.cnyEur,netRev:x.net,newNet:x.nNet,M:x.M}
+  };
+  try{
+    await firebase.firestore().collection('mc405_submissions').doc(`mc1_sec${_sec}_grp${_grp}`).set(data);
+    _submitted=true;
+    document.getElementById('submitResult').innerHTML=`
+      <div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:10px;padding:20px;text-align:center;color:#065f46">
+        <div style="font-size:32px;margin-bottom:8px">✅</div>
+        <strong style="font-size:16px">Submitted successfully!</strong><br>
+        <span style="font-size:13px;opacity:.75">Saved at ${new Date().toLocaleString('en-US',{timeZone:'America/Los_Angeles'})}</span>
+      </div>`;
+    btn.style.display='none';
+  } catch(e){
+    btn.disabled=false; btn.textContent='📤 SUBMIT';
+    document.getElementById('submitResult').innerHTML=
+      `<div style="color:#c53030;background:#fff5f5;border:1px solid #feb2b2;border-radius:6px;padding:12px;font-size:13px">⚠️ Save failed: ${e.message}</div>`;
+  }
+}
+
+resolveGroupAndStart();
+</script>
+</body>
+</html>
