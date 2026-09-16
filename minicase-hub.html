@@ -114,6 +114,14 @@ input:checked+.tslider:before{transform:translateX(18px);}
 .num-sections-row span{font-size:.82rem;color:var(--muted);}
 .btn-save{background:var(--gold);color:var(--navy);font-weight:700;border:none;padding:10px 28px;border-radius:8px;font-size:.9rem;cursor:pointer;}
 .btn-save:hover{background:#b08830;}
+.btn-key{background:#1d4ed8;color:#fff;font-weight:700;border:none;padding:10px 22px;border-radius:8px;font-size:.9rem;cursor:pointer;}
+.btn-key:hover{background:#1e40af;}
+.ak-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+.ak-table th{background:var(--navy);color:#fff;padding:8px 10px;text-align:center;white-space:nowrap;}
+.ak-table td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;}
+.ak-table td:first-child{text-align:center;font-weight:700;color:var(--navy);}
+.ak-table tr:nth-child(even){background:#f8f9fb;}
+.ak-section{font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 8px;}
 .save-msg{font-size:.82rem;color:var(--green);font-weight:600;display:none;}
 
 /* SUBMISSIONS VIEWER */
@@ -262,7 +270,25 @@ const COLL='mc405_submissions';
     <div class="mfoot">
       <span class="save-msg" id="save-msg">✓ Saved!</span>
       <button class="btn-secondary" onclick="closeST()">Close</button>
+      <button class="btn-key" onclick="openAnswerKey()">📋 Answer Key</button>
       <button class="btn-save" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANSWER KEY MODAL -->
+<div class="overlay" id="ak-overlay">
+  <div class="modal" style="width:min(860px,97vw);">
+    <div class="mhd">
+      <h3>📋 Minicase 1 — Answer Key (All Groups)</h3>
+      <button class="xbtn" onclick="document.getElementById('ak-overlay').classList.remove('show')">✕</button>
+    </div>
+    <div class="mbody" style="overflow-x:auto;padding:20px;">
+      <p style="font-size:.82rem;color:#555;margin-bottom:14px">Expected correct answers computed from each group's spot rates. Share with stuck groups in class.</p>
+      <div id="ak-content"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-secondary" onclick="document.getElementById('ak-overlay').classList.remove('show')">Close</button>
     </div>
   </div>
 </div>
@@ -838,9 +864,74 @@ async function resetSubmission(docId){
   }catch(e){msg.textContent='Error: '+e.message;msg.style.color='var(--red)';}
 }
 
-['gs-overlay','pw-overlay','st-overlay'].forEach(id=>{
+['gs-overlay','pw-overlay','st-overlay','ak-overlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
 });
+
+// ─── ANSWER KEY REPORT ──────────────────────────────────────────────────────
+const MC1_ANSWERS=[
+  {grupo:1,  eurUsd:1.1856, usdMxn:18.3156, usdCny:7.1036, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.13},
+  {grupo:2,  eurUsd:1.2020, usdMxn:18.1500, usdCny:7.0850, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.13},
+  {grupo:3,  eurUsd:1.1700, usdMxn:18.4800, usdCny:7.1200, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.14},
+  {grupo:4,  eurUsd:1.2150, usdMxn:18.0200, usdCny:7.0600, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.10},
+  {grupo:5,  eurUsd:1.1580, usdMxn:18.6500, usdCny:7.1500, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.10},
+  {grupo:6,  eurUsd:1.1980, usdMxn:17.9800, usdCny:7.0400, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.12},
+  {grupo:7,  eurUsd:1.2100, usdMxn:18.4200, usdCny:7.1800, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.14},
+  {grupo:8,  eurUsd:1.1750, usdMxn:18.5800, usdCny:6.9800, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.13},
+  {grupo:9,  eurUsd:1.1920, usdMxn:17.8500, usdCny:7.2000, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.14},
+  {grupo:10, eurUsd:1.1650, usdMxn:18.2500, usdCny:7.0700, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.11}
+];
+
+function computeAK(a){
+  const e=a.eurUsd, m=a.usdMxn, c=a.usdCny;
+  const cnyMxn=m/c, cnyEur=1/(e*c);
+  const sEur=10000000/cnyEur, sMxn=50000000/cnyMxn, cUsd=15000000*c;
+  const net=sEur+sMxn-cUsd;
+  const nE=e/0.95, nM=m*0.95, nC=c*0.95;
+  const nCnyMxn=nM/nC, nCnyEur=1/(nE*nC);
+  const nCUsd=15000000*nC, nNet=sEur+sMxn-nCUsd;
+  const M=cnyEur/a.chase, dir=M<1?'overpriced':'underpriced';
+  return {cnyMxn,cnyEur,sEur,sMxn,cUsd,net,nE,nM,nC,nCnyMxn,nCnyEur,nCUsd,nNet,M,dir};
+}
+
+function fmt4(n){return n.toFixed(4);}
+function fmtM(n){return (n/1000000).toFixed(3)+'M';}
+function fmtBigH(n){return Math.round(n).toLocaleString('en-US');}
+
+function openAnswerKey(){
+  const rows=MC1_ANSWERS.map(a=>{
+    const x=computeAK(a);
+    return `<tr>
+      <td>${a.grupo}</td>
+      <td>${a.eurUsd}</td><td>${a.usdMxn}</td><td>${a.usdCny}</td>
+      <td>${fmt4(x.cnyMxn)}</td><td>${fmt4(x.cnyEur)}</td>
+      <td>${fmtBigH(x.sEur)}</td><td>${fmtBigH(x.sMxn)}</td>
+      <td>${fmtBigH(x.cUsd)}</td><td>${fmtBigH(x.net)}</td>
+      <td>${fmt4(x.nCnyMxn)}</td><td>${fmt4(x.nCnyEur)}</td>
+      <td>${fmtBigH(x.nNet)}</td>
+      <td>${x.M.toFixed(4)}</td><td>${x.dir}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('ak-content').innerHTML=`
+    <p class="ak-section">Spot Rates (Input) &amp; Q2 Cross-Rates</p>
+    <table class="ak-table">
+      <thead><tr>
+        <th>Grp</th>
+        <th>EUR/USD</th><th>USD/MXN</th><th>USD/CNY</th>
+        <th>CNY/MXN</th><th>CNY/EUR</th>
+        <th>Sales EUR (CNY)</th><th>Sales MXN (CNY)</th>
+        <th>Cost USD (CNY)</th><th>Net Rev (CNY)</th>
+        <th>Shock CNY/MXN</th><th>Shock CNY/EUR</th>
+        <th>Net Rev after Shock</th>
+        <th>CNY/EUR Mkt</th><th>Chase Quote</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="font-size:.75rem;color:var(--muted);margin-top:14px">Shock: EUR/USD ÷ 0.95, USD/MXN × 0.95, USD/CNY × 0.95. Chase quote comparison uses column 14 vs. each group's chase rate.</p>
+  `;
+  document.getElementById('ak-overlay').classList.add('show');
+}
 
 loadHub();
 </script>

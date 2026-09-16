@@ -253,10 +253,6 @@ firebase.initializeApp({
   <div class="card">
     <h2><span class="badge">Q2</span> Cross-Rates</h2>
     <p style="font-size:14px;color:#444;margin-bottom:10px">Using your group's spot rates, compute the two cross-rates needed to convert DragonTech's cash flows to CNY.</p>
-    <div class="formula-box">
-      CNY/MXN = USD/MXN ÷ USD/CNY<br>
-      CNY/EUR = 1 ÷ (EUR/USD × USD/CNY)
-    </div>
     <div class="g2" style="margin-top:12px">
       <div class="input-group">
         <label>CNY / MXN</label>
@@ -279,12 +275,6 @@ firebase.initializeApp({
     <div class="card">
       <h2><span class="badge">Q3</span> Cash Flows in CNY — Net Revenue</h2>
       <p style="font-size:14px;color:#444;margin-bottom:10px">Convert each transaction to CNY using your cross-rates from Q2. Then compute the net revenue.</p>
-      <div class="formula-box">
-        Sales EUR → CNY: €10M ÷ CNY/EUR<br>
-        Sales MXN → CNY: MXN 50M ÷ CNY/MXN<br>
-        Cost USD → CNY: $15M × USD/CNY<br>
-        Net Revenue = Sales EUR(CNY) + Sales MXN(CNY) − Cost USD(CNY)
-      </div>
       <div class="g4" style="margin-top:14px">
         <div class="input-group">
           <label>Sales Europe (CNY)</label>
@@ -696,8 +686,8 @@ function validateQ2(){
     setTimeout(()=>unlock('wrapQ3','lockQ3'),600);
   } else {
     const msgs=[];
-    if(!ok1) msgs.push('CNY/MXN: use USD/MXN ÷ USD/CNY.');
-    if(!ok2) msgs.push('CNY/EUR: use 1 ÷ (EUR/USD × USD/CNY).');
+    if(!ok1) msgs.push('CNY/MXN is off — hint: CNY/MXN = USD/MXN ÷ USD/CNY.');
+    if(!ok2) msgs.push('CNY/EUR is off — hint: CNY/EUR = 1 ÷ (EUR/USD × USD/CNY).');
     showFB('q2_fb',false,msgs.join(' '));
   }
 }
@@ -720,10 +710,10 @@ function validateQ3(){
     setTimeout(()=>unlock('wrapQ4','lockQ4'),600);
   } else {
     const msgs=[];
-    if(!ok[0]) msgs.push('EUR sales: divide €10M by CNY/EUR.');
-    if(!ok[1]) msgs.push('MXN sales: divide MXN 50M by CNY/MXN.');
-    if(!ok[2]) msgs.push('USD cost: multiply $15M × USD/CNY.');
-    if(!ok[3]) msgs.push('Net revenue: Sales EUR + Sales MXN − Cost USD.');
+    if(!ok[0]) msgs.push('EUR sales is off — hint: Sales EUR (CNY) = €10,000,000 ÷ CNY/EUR.');
+    if(!ok[1]) msgs.push('MXN sales is off — hint: Sales MXN (CNY) = MXN 50,000,000 ÷ CNY/MXN.');
+    if(!ok[2]) msgs.push('USD cost is off — hint: Cost USD (CNY) = $15,000,000 × USD/CNY.');
+    if(!ok[3]) msgs.push('Net revenue is off — hint: Net = Sales EUR (CNY) + Sales MXN (CNY) − Cost USD (CNY).');
     showFB('q3_fb',false,msgs.join(' '));
   }
 }
