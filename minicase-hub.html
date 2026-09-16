@@ -201,6 +201,26 @@ const COLL='mc405_submissions';
   </div>
 </div>
 
+<!-- ACCESS CODE MODAL -->
+<div class="overlay" id="ac-overlay">
+  <div class="modal">
+    <div class="mhd">
+      <h3 id="ac-title">Enter Access Code</h3>
+      <button class="xbtn" onclick="closeAC()">✕</button>
+    </div>
+    <div class="mbody">
+      <p style="font-size:14px;color:#374151;margin-bottom:16px">Your instructor has set an access code for this minicase. Enter it below to continue.</p>
+      <label class="gs-label">Access Code</label>
+      <input type="text" id="ac-input" class="gs-select" placeholder="Enter access code…" autocomplete="off" style="letter-spacing:2px;font-weight:600;text-transform:uppercase">
+      <div id="ac-err" style="display:none;color:#c0392b;font-size:13px;margin-top:8px;font-weight:500">❌ Incorrect access code. Please try again.</div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-secondary" onclick="closeAC()">Cancel</button>
+      <button class="btn-primary" onclick="submitAC()">Unlock Minicase →</button>
+    </div>
+  </div>
+</div>
+
 <!-- PASSWORD MODAL -->
 <div class="overlay" id="pw-overlay">
   <div class="modal">
@@ -270,7 +290,7 @@ const COLL='mc405_submissions';
 function defaultSections(n){
   return Array.from({length:n},(_,i)=>({name:'Section '+(i+1),active:true,groups:5}));
 }
-const DEFAULTS={password:"FINA405",minicases:Array.from({length:4},(_,i)=>({active:false,title:'Minicase '+(i+1),description:'',sections:defaultSections(2)}))};
+const DEFAULTS={password:"FINA405",minicases:Array.from({length:4},(_,i)=>({active:false,title:'Minicase '+(i+1),description:'',accessCode:'',sections:defaultSections(2)}))};
 
 // Preset titles/descriptions
 const MC_META=[
@@ -366,13 +386,52 @@ function updateGroupDropdown(){
   };
 }
 
-function goToMinicase(){
+async function goToMinicase(){
   const si=document.getElementById('gs-section').value;
   const gi=document.getElementById('gs-group').value;
   if(!si||!gi)return;
-  window.location.href='minicase'+(currentMC+1)+'.html?seccion='+(parseInt(si)+1)+'&grupo='+gi;
+  const mc=cfg.minicases[currentMC];
+  if(mc.accessCode&&mc.accessCode.trim()){
+    // Store pending navigation state and show access code modal
+    pendingSec=parseInt(si)+1; pendingGrp=gi;
+    document.getElementById('ac-title').textContent=(mc.title||'Minicase '+(currentMC+1))+' — Access Code';
+    document.getElementById('ac-input').value='';
+    document.getElementById('ac-err').style.display='none';
+    document.getElementById('gs-overlay').classList.remove('show');
+    document.getElementById('ac-overlay').classList.add('show');
+    setTimeout(()=>document.getElementById('ac-input').focus(),120);
+  } else {
+    // No access code — open directly
+    window.location.href='minicase'+(currentMC+1)+'.html?seccion='+(parseInt(si)+1)+'&grupo='+gi;
+  }
 }
 function closeGS(){document.getElementById('gs-overlay').classList.remove('show');currentMC=null;}
+
+let pendingSec=null, pendingGrp=null;
+function closeAC(){document.getElementById('ac-overlay').classList.remove('show');}
+async function submitAC(){
+  const entered=document.getElementById('ac-input').value.trim().toUpperCase();
+  const correct=(cfg.minicases[currentMC].accessCode||'').trim().toUpperCase();
+  if(entered!==correct){
+    document.getElementById('ac-err').style.display='block';
+    document.getElementById('ac-input').select();
+    return;
+  }
+  // Code correct — generate token
+  const btn=document.querySelector('#ac-overlay .btn-primary');
+  btn.disabled=true; btn.textContent='Opening…';
+  try{
+    const tokenId=crypto.randomUUID();
+    const expires=new Date(Date.now()+2*60*60*1000).toISOString();
+    await db.collection('mc_tokens').doc(tokenId).set({mc:currentMC+1,created:new Date().toISOString(),expires});
+    closeAC();
+    window.location.href='minicase'+(currentMC+1)+'.html?seccion='+pendingSec+'&grupo='+pendingGrp+'&tok='+tokenId;
+  }catch(e){
+    btn.disabled=false; btn.textContent='Unlock Minicase →';
+    document.getElementById('ac-err').textContent='⚠️ Connection error. Please try again.';
+    document.getElementById('ac-err').style.display='block';
+  }
+}
 
 // PASSWORD
 function openPwModal(){
@@ -389,6 +448,7 @@ async function submitPw(){
   else{document.getElementById('pw-err').style.display='block';document.getElementById('pw-input').value='';document.getElementById('pw-input').focus();}
 }
 document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitPw();});
+document.getElementById('ac-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitAC();});
 
 // SETTINGS
 function openSettings(){renderSettings();populateSubPickers();document.getElementById('st-overlay').classList.add('show');}
@@ -414,6 +474,7 @@ function renderSettings(){
       '<div class="acc-body" id="body-'+i+'">'+
         '<div class="frow"><label>Title</label><input type="text" id="mc-title-'+i+'" value="'+(mc.title||'Minicase '+(i+1))+'" oninput="refreshPreview('+i+')" placeholder="e.g. Cash Flows in Foreign Currencies"></div>'+
         '<div class="frow"><label>Description (optional)</label><input type="text" id="mc-desc-'+i+'" value="'+(mc.description||'')+'" placeholder="Short description shown on card"></div>'+
+        '<div class="frow"><label>Access Code <span style="font-size:11px;color:var(--muted);font-weight:400">(leave blank = no code required)</span></label><input type="text" id="mc-code-'+i+'" value="'+(mc.accessCode||'')+'" placeholder="e.g. FINA405MC1" style="letter-spacing:1px;font-weight:600;text-transform:uppercase"></div>'+
         '<div class="frow"><label style="margin-bottom:6px;">Submission Status</label>'+
           '<button onclick="loadStatusForMC('+i+')" style="padding:5px 12px;background:var(--navy);color:#fff;border:none;border-radius:5px;font-size:.78rem;cursor:pointer;margin-bottom:8px;">📊 Load Status</button>'+
           '<div id="mc-status-'+i+'"><span style="color:var(--muted);font-size:.8rem">Click to load who has submitted.</span></div>'+
@@ -464,7 +525,7 @@ async function saveSettings(){
       const actEl=document.getElementById('sec-active-'+i+'-'+si);
       sections.push({name:'Section '+(si+1),active:actEl?actEl.checked:true,groups:grpEl?parseInt(grpEl.value)||5:5});
     }
-    return{active:document.getElementById('mc-active-'+i).checked,title:document.getElementById('mc-title-'+i).value.trim()||'Minicase '+(i+1),description:document.getElementById('mc-desc-'+i).value.trim(),sections};
+    return{active:document.getElementById('mc-active-'+i).checked,title:document.getElementById('mc-title-'+i).value.trim()||'Minicase '+(i+1),description:document.getElementById('mc-desc-'+i).value.trim(),accessCode:(document.getElementById('mc-code-'+i)?.value.trim().toUpperCase()||''),sections};
   });
   cfg.minicases=minicases;
   try{
@@ -836,7 +897,7 @@ async function resetSubmission(docId){
   }catch(e){msg.textContent='Error: '+e.message;msg.style.color='var(--red)';}
 }
 
-['gs-overlay','pw-overlay','st-overlay'].forEach(id=>{
+['gs-overlay','pw-overlay','st-overlay','ac-overlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
 });
 

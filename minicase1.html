@@ -476,6 +476,81 @@ const _grp=parseInt(_p.get('grupo')||'1');
 let gNum=_grp, G, A, _submitted=false;
 
 async function resolveGroupAndStart(){
+  // ── TOKEN / DIRECT-ACCESS CHECK ──────────────────────────────
+  const _tok=_p.get('tok');
+  const _hasParams=_p.has('seccion')||_p.has('grupo');
+  if(_hasParams && !_tok){
+    // Accessed directly without going through hub
+    document.body.innerHTML=`
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-family:'Segoe UI',system-ui,sans-serif">
+        <div style="background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.12);padding:48px 40px;max-width:480px;width:90%;text-align:center">
+          <div style="font-size:56px;margin-bottom:16px">🔐</div>
+          <h2 style="color:#002147;font-size:22px;margin-bottom:10px">Access Required</h2>
+          <p style="color:#374151;font-size:15px;line-height:1.6;margin-bottom:20px">
+            Please open this minicase through the course hub using your access code.
+          </p>
+          <a href="minicase-hub.html" style="display:inline-block;background:#002147;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">← Go to Course Hub</a>
+        </div>
+      </div>`;
+    return;
+  }
+  if(_tok){
+    // Validate token
+    try{
+      const tokDoc=await firebase.firestore().collection('mc_tokens').doc(_tok).get();
+      if(!tokDoc.exists||new Date(tokDoc.data().expires)<new Date()){
+        document.body.innerHTML=`
+          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-family:'Segoe UI',system-ui,sans-serif">
+            <div style="background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.12);padding:48px 40px;max-width:480px;width:90%;text-align:center">
+              <div style="font-size:56px;margin-bottom:16px">⏰</div>
+              <h2 style="color:#002147;font-size:22px;margin-bottom:10px">Access Link Expired</h2>
+              <p style="color:#374151;font-size:15px;line-height:1.6;margin-bottom:20px">
+                Your access link has expired or is no longer valid. Please return to the hub and enter the access code again.
+              </p>
+              <a href="minicase-hub.html" style="display:inline-block;background:#002147;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">← Go to Course Hub</a>
+            </div>
+          </div>`;
+        return;
+      }
+      // Valid — delete token (single use)
+      firebase.firestore().collection('mc_tokens').doc(_tok).delete().catch(()=>{});
+    }catch(e){/* network error — allow through */}
+  }
+
+  // Show full-page loading overlay so minicase content never flashes
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:"Segoe UI",system-ui,sans-serif';
+  overlay.innerHTML='<div style="text-align:center;color:#6b7280"><div style="font-size:36px;margin-bottom:14px">⏳</div><div style="font-size:15px;font-weight:600">Loading your minicase…</div></div>';
+  document.body.prepend(overlay);
+
+  // ── FIRST: check if already submitted ──────────────────
+  try{
+    const _docId=`mc1_sec${_sec}_grp${_grp}`;
+    const existing=await firebase.firestore().collection('mc405_submissions').doc(_docId).get();
+    if(existing.exists){
+      _submitted=true;
+      const ts=existing.data().submittedAt
+        ? new Date(existing.data().submittedAt).toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})
+        : '';
+      document.body.innerHTML=`
+        <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-family:'Segoe UI',system-ui,sans-serif">
+          <div style="background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.12);padding:48px 40px;max-width:480px;width:90%;text-align:center">
+            <div style="font-size:56px;margin-bottom:16px">🔒</div>
+            <h2 style="color:#002147;font-size:22px;margin-bottom:10px">Submission Already Recorded</h2>
+            <p style="color:#374151;font-size:15px;line-height:1.6;margin-bottom:8px">
+              This group has already submitted Mini Case 1.
+            </p>
+            ${ts?`<p style="color:#6b7280;font-size:13px;margin-bottom:20px">Submitted on: <strong>${ts}</strong></p>`:''}
+            <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:14px 18px;color:#78350f;font-size:13px">
+              If you need to make changes, please contact your instructor.
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+  } catch(e){ /* network error — allow submission attempt */ }
+
+  // ── NOT submitted — resolve group and load content ──────
   if(_sec>0){
     try{
       const hub=await firebase.firestore().collection('minicase_hub405').doc('config').get();
@@ -511,26 +586,10 @@ async function resolveGroupAndStart(){
   document.getElementById('chartPairLabel').textContent=fi.chartPair;
   document.getElementById('chaseDisplay').textContent=A.chase.toFixed(4);
 
-  drawFXChart();
+  // Remove overlay and show content
+  overlay.remove();
 
-  // ── check if already submitted ──────────────────
-  try{
-    const _docId=`mc1_sec${_sec}_grp${_grp}`;
-    const existing=await firebase.firestore().collection('mc405_submissions').doc(_docId).get();
-    if(existing.exists){
-      _submitted=true;
-      const ts=existing.data().submittedAt
-        ? new Date(existing.data().submittedAt).toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})
-        : '';
-      document.getElementById('submitBtn').style.display='none';
-      document.getElementById('submitResult').innerHTML=`
-        <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:10px;padding:18px 22px;text-align:center;color:#78350f;margin-top:12px">
-          <div style="font-size:28px;margin-bottom:6px">📋</div>
-          <strong style="font-size:15px">Este grupo ya entregó su minicase</strong><br>
-          <span style="font-size:13px;opacity:.85">${ts?'Entrega registrada: '+ts+'.':''} Si necesitas hacer cambios, contacta al instructor.</span>
-        </div>`;
-    }
-  } catch(e){ /* network error — allow submission attempt */ }
+  drawFXChart();
 }
 
 // ─── FX CHART ────────────────────────────────────
@@ -759,24 +818,31 @@ function validateQ6(){
 async function submitToFirebase(){
   if(_submitted){return;}
   const btn=document.getElementById('submitBtn');
-  btn.disabled=true; btn.textContent='⏳ Verificando…';
+  btn.disabled=true; btn.textContent='⏳ Checking…';
   // Safety check: confirm no submission exists yet
   const _docId=`mc1_sec${_sec}_grp${_grp}`;
   try{
     const existing=await firebase.firestore().collection('mc405_submissions').doc(_docId).get();
     if(existing.exists){
       _submitted=true;
-      btn.style.display='none';
-      document.getElementById('submitResult').innerHTML=`
-        <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:10px;padding:18px 22px;text-align:center;color:#78350f;margin-top:12px">
-          <div style="font-size:28px;margin-bottom:6px">📋</div>
-          <strong style="font-size:15px">Este grupo ya entregó su minicase</strong><br>
-          <span style="font-size:13px;opacity:.85">Si necesitas hacer cambios, contacta al instructor.</span>
+      document.body.innerHTML=`
+        <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-family:'Segoe UI',system-ui,sans-serif">
+          <div style="background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.12);padding:48px 40px;max-width:480px;width:90%;text-align:center">
+            <div style="font-size:56px;margin-bottom:16px">🔒</div>
+            <h2 style="color:#002147;font-size:22px;margin-bottom:10px">Submission Already Recorded</h2>
+            <p style="color:#374151;font-size:15px;line-height:1.6;margin-bottom:20px">
+              This group has already submitted Mini Case 1.
+            </p>
+            <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:14px 18px;color:#78350f;font-size:13px">
+              If you need to make changes, please contact your instructor.
+            </div>
+          </div>
         </div>`;
       return;
     }
   }catch(e){/* network hiccup — proceed */}
-  btn.textContent='⏳ Guardando…';
+  btn.textContent='⏳ Saving…';
+
   const team=[1,2,3,4,5].map(i=>document.getElementById('tm'+i)?.value.trim()).filter(Boolean);
   const x=exp();
   const data={
