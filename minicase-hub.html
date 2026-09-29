@@ -124,6 +124,23 @@ input:checked+.tslider:before{transform:translateX(18px);}
 .ak-section{font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 8px;}
 .save-msg{font-size:.82rem;color:var(--green);font-weight:600;display:none;}
 
+/* REPORT */
+.rpt-grp{background:#fff;border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:14px;}
+.rpt-grp-hd{background:var(--navy);color:#fff;padding:11px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.rpt-grade{font-size:1.4rem;font-weight:800;min-width:52px;}
+.rpt-meta{font-size:.8rem;opacity:.75;flex:1;}
+.rpt-bars{display:flex;gap:6px;flex-wrap:wrap;font-size:.68rem;margin-left:auto;}
+.rpt-body{padding:14px 18px;}
+.rpt-team{font-size:.78rem;color:var(--muted);margin-bottom:8px;}
+.rpt-fb{font-size:.87rem;line-height:1.65;color:#2d2d2d;border-left:3px solid var(--gold);padding-left:12px;margin:0;}
+.rpt-summary{background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;padding:14px 18px;margin-bottom:20px;display:flex;gap:28px;flex-wrap:wrap;}
+.rpt-stat{text-align:center;}.rpt-stat .sv{font-size:1.5rem;font-weight:800;color:var(--navy)}.rpt-stat .sl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.btn-print{background:#374151;color:#fff;font-weight:700;border:none;padding:9px 20px;border-radius:8px;font-size:.85rem;cursor:pointer;}
+.btn-print:hover{background:#1f2937;}
+.btn-csv{background:#065f46;color:#fff;font-weight:700;border:none;padding:9px 18px;border-radius:8px;font-size:.85rem;cursor:pointer;}
+.btn-csv:hover{background:#064e3b;}
+@media print{.overlay{position:static!important;background:none!important;}.modal{box-shadow:none;border-radius:0;max-height:none;width:100%!important;}.mhd{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.rpt-grp-hd{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.mfoot,.xbtn{display:none!important;}}
+
 /* SUBMISSIONS VIEWER */
 .sub-panel{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:20px;margin-top:18px;}
 .sub-panel h4{font-size:.88rem;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
@@ -247,6 +264,15 @@ const COLL='mc405_submissions';
         </div>
         <div id="pw-change-msg"></div>
       </div>
+      <div class="pw-change" style="margin-top:14px;">
+        <h4>🤖 Anthropic API Key (for AI Devil's Advocate)</h4>
+        <div class="pw-row">
+          <input type="password" id="anthropic-key-input" placeholder="sk-ant-..." style="flex:1;font-family:monospace;font-size:.82rem;">
+          <button onclick="saveAnthropicKey()">Save Key</button>
+          <button onclick="testAnthropicKey()" style="background:#0e7490;">🧪 Test</button>
+        </div>
+        <div id="anthropic-key-msg" style="font-size:.8rem;margin-top:4px;"></div>
+      </div>
       <div id="mc-settings"></div>
 
       <!-- SUBMISSIONS VIEWER -->
@@ -271,6 +297,8 @@ const COLL='mc405_submissions';
       <span class="save-msg" id="save-msg">✓ Saved!</span>
       <button class="btn-secondary" onclick="closeST()">Close</button>
       <button class="btn-key" onclick="openAnswerKey()">📋 Answer Key</button>
+      <button class="btn-key" style="background:#15803d;" onclick="openReport()">📊 Generate Report</button>
+      <button class="btn-key" style="background:#065f46;" onclick="exportAK_Excel()">📥 Excel AK</button>
       <button class="btn-save" onclick="saveSettings()">Save Settings</button>
     </div>
   </div>
@@ -289,6 +317,24 @@ const COLL='mc405_submissions';
     </div>
     <div class="mfoot">
       <button class="btn-secondary" onclick="document.getElementById('ak-overlay').classList.remove('show')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="overlay" id="rpt-overlay">
+  <div class="modal" style="width:min(820px,97vw);">
+    <div class="mhd">
+      <h3>📊 Minicase 1 — Grade Report</h3>
+      <button class="xbtn" onclick="document.getElementById('rpt-overlay').classList.remove('show')">✕</button>
+    </div>
+    <div class="mbody" id="rpt-body" style="padding:20px;">
+      <div style="text-align:center;padding:40px;color:var(--muted)"><div class="spinner"></div>Loading submissions…</div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-csv" onclick="exportReportCSV()">⬇ Export CSV</button>
+      <button class="btn-print" onclick="window.print()">🖨 Print</button>
+      <button class="btn-secondary" onclick="document.getElementById('rpt-overlay').classList.remove('show')">Close</button>
     </div>
   </div>
 </div>
@@ -419,7 +465,14 @@ async function submitPw(){
 document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitPw();});
 
 // SETTINGS
-function openSettings(){renderSettings();populateSubPickers();document.getElementById('st-overlay').classList.add('show');}
+function openSettings(){
+  renderSettings();
+  populateSubPickers();
+  // Populate Anthropic key field if already set
+  const keyEl=document.getElementById('anthropic-key-input');
+  if(keyEl && cfg && cfg.anthropicKey) keyEl.value=cfg.anthropicKey;
+  document.getElementById('st-overlay').classList.add('show');
+}
 function closeST(){document.getElementById('st-overlay').classList.remove('show');}
 
 function renderSettings(){
@@ -511,22 +564,58 @@ async function changePassword(){
   try{await HUB.set(cfg);document.getElementById('new-pw').value='';document.getElementById('confirm-pw').value='';showMsg(msg,'✓ Password updated.','green');}
   catch(e){showMsg(msg,'Error.','red');}
 }
+
+async function saveAnthropicKey(){
+  const key=document.getElementById('anthropic-key-input').value.trim();
+  const msg=document.getElementById('anthropic-key-msg');
+  if(!key){showMsg(msg,'Enter your Anthropic API key (starts with sk-ant-).','red');return;}
+  cfg.anthropicKey=key;
+  try{
+    await HUB.set(cfg);
+    showMsg(msg,'✓ API key saved! Students can now use the AI Devil\'s Advocate.','green');
+  }catch(e){showMsg(msg,'Error saving key. Check connection.','red');}
+}
+
+async function testAnthropicKey(){
+  const key=document.getElementById('anthropic-key-input').value.trim()||cfg.anthropicKey;
+  const msg=document.getElementById('anthropic-key-msg');
+  if(!key){msg.textContent='Enter a key first.';msg.style.color='#c0392b';msg.style.display='block';return;}
+  // Show loading without auto-hide
+  msg.textContent='⏳ Testing key…';msg.style.color='#0e7490';msg.style.display='block';
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-allow-browser':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:20,messages:[{role:'user',content:'Say OK'}]})
+    });
+    const data=await resp.json();
+    if(data.content?.[0]?.text){
+      msg.textContent='✅ Key works! AI is connected and ready.';msg.style.color='#16a34a';
+    } else {
+      const errMsg=data.error?.message||JSON.stringify(data);
+      msg.textContent='❌ API error: '+errMsg;msg.style.color='#c0392b';
+    }
+  }catch(e){
+    msg.textContent='❌ Could not reach API — '+e.message;msg.style.color='#c0392b';
+  }
+}
 function showMsg(el,t,c){el.textContent=t;el.style.color=c==='green'?'#16a34a':'#c0392b';el.style.display='block';setTimeout(()=>el.style.display='none',3000);}
 
 // ═══════════════════════════════════════
 // FINA 405 MC1 ANSWER KEY & GRADING
 // ═══════════════════════════════════════
 const MC405_ANS=[
-  {grupo:1,  eurUsd:1.1856, usdMxn:18.3156, usdCny:7.1036, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.13},
-  {grupo:2,  eurUsd:1.2020, usdMxn:18.1500, usdCny:7.0850, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.13},
-  {grupo:3,  eurUsd:1.1700, usdMxn:18.4800, usdCny:7.1200, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.14},
-  {grupo:4,  eurUsd:1.2150, usdMxn:18.0200, usdCny:7.0600, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.10},
-  {grupo:5,  eurUsd:1.1580, usdMxn:18.6500, usdCny:7.1500, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.10},
-  {grupo:6,  eurUsd:1.1980, usdMxn:17.9800, usdCny:7.0400, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.12},
-  {grupo:7,  eurUsd:1.2100, usdMxn:18.4200, usdCny:7.1800, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.14},
-  {grupo:8,  eurUsd:1.1750, usdMxn:18.5800, usdCny:6.9800, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.13},
-  {grupo:9,  eurUsd:1.1920, usdMxn:17.8500, usdCny:7.2000, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.14},
-  {grupo:10, eurUsd:1.1650, usdMxn:18.2500, usdCny:7.0700, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.11}
+  {grupo:1,  eurUsd:1.04, usdMxn:16.50, usdCny:6.70, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.130},
+  {grupo:2,  eurUsd:1.15, usdMxn:18.00, usdCny:6.92, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.107},
+  {grupo:3,  eurUsd:1.26, usdMxn:20.00, usdCny:7.18, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.118},
+  {grupo:4,  eurUsd:1.10, usdMxn:16.20, usdCny:7.40, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.120},
+  {grupo:5,  eurUsd:1.20, usdMxn:18.40, usdCny:6.98, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.105},
+  {grupo:6,  eurUsd:1.42, usdMxn:20.20, usdCny:6.75, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.093},
+  {grupo:7,  eurUsd:1.08, usdMxn:22.00, usdCny:6.30, focus:'MXN', netPos:'assets',      netAmt:30000000, chase:0.115},
+  {grupo:8,  eurUsd:1.12, usdMxn:17.20, usdCny:6.78, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.124},
+  {grupo:9,  eurUsd:1.22, usdMxn:19.00, usdCny:7.08, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.119},
+  {grupo:10, eurUsd:1.32, usdMxn:20.80, usdCny:7.10, focus:'USD', netPos:'liabilities', netAmt:7000000,  chase:0.082},
+  {grupo:11, eurUsd:1.38, usdMxn:21.20, usdCny:7.42, focus:'EUR', netPos:'assets',      netAmt:2000000,  chase:0.109}
 ];
 
 // Recompute expected values for a given answer row
@@ -932,6 +1021,403 @@ function openAnswerKey(){
     <p style="font-size:.75rem;color:var(--muted);margin-top:14px">Shock: EUR/USD ÷ 0.95, USD/MXN × 0.95, USD/CNY × 0.95. Chase quote comparison uses column 14 vs. each group's chase rate.</p>
   `;
   document.getElementById('ak-overlay').classList.add('show');
+}
+
+// ═══════════════════════════════════════
+// EXCEL ANSWER KEY EXPORT
+// ═══════════════════════════════════════
+function exportAK_Excel(){
+  function doExport(){
+    const XLSX = window.XLSX;
+    const wb = XLSX.utils.book_new();
+
+    // ─────────────────────────────────────────────────────────────
+    // SHEET 1 — Full Answer Key (inputs as numbers, results as formulas)
+    //
+    // Col layout (Excel letters):
+    //  A=Group  B=Focus  C=Net Position  D=Net Amount  E=Chase Rate
+    //  F=EUR/USD  G=USD/MXN  H=USD/CNY
+    //  I=Q2 CNY/MXN  J=Q2 CNY/EUR
+    //  K=Q3 Sales EUR(CNY)  L=Q3 Sales MXN(CNY)  M=Q3 Cost USD(CNY)  N=Q3 Net Rev(CNY)
+    //  O=Q4 EUR/USD shock  P=Q4 USD/MXN shock  Q=Q4 USD/CNY shock
+    //  R=Q4 CNY/MXN shock  S=Q4 CNY/EUR shock
+    //  T=Q4 Cost USD(CNY) shock  U=Q4 Net Rev after shock  V=Q4 Delta Net Rev(CNY)
+    //  W=Q6 M ratio  X=Q6 Chase verdict
+    // ─────────────────────────────────────────────────────────────
+    const AK_HEADERS = [
+      // inputs
+      'Group','Focus','Net Position','Net Amount','Chase Rate (CNY/EUR)',
+      'EUR/USD','USD/MXN','USD/CNY',
+      // Q2
+      'Q2 · CNY/MXN  [=USD/MXN ÷ USD/CNY]',
+      'Q2 · CNY/EUR  [=1/(EUR/USD × USD/CNY)]',
+      // Q3
+      'Q3 · Sales EUR → CNY  [€10M ÷ CNY/EUR]',
+      'Q3 · Sales MXN → CNY  [¥50M ÷ CNY/MXN]',
+      'Q3 · Cost USD → CNY  [$15M × USD/CNY]',
+      'Q3 · Net Revenue (CNY)  [Sales EUR + Sales MXN − Cost USD]',
+      // Q4 shock
+      'Q4 · EUR/USD shocked  [÷ 0.95]',
+      'Q4 · USD/MXN shocked  [× 0.95]',
+      'Q4 · USD/CNY shocked  [× 0.95]',
+      'Q4 · CNY/MXN shocked  [=P÷Q]',
+      'Q4 · CNY/EUR shocked  [=1/(O×Q)]',
+      'Q4 · Cost USD shocked → CNY  [$15M × Q]',
+      'Q4 · Net Revenue after Shock (CNY)  [K+L−T]',
+      'Q4 · Change in Net Revenue (CNY)  [U−N]',
+      // Q6
+      'Q6 · M = CNY/EUR (market) ÷ Chase  [=J÷E]',
+      'Q6 · Chase is… [overpriced if M<1]'
+    ];
+
+    const ws = {};
+    const NROWS = MC1_ANSWERS.length;
+    const NCOLS = AK_HEADERS.length;
+    ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:NROWS,c:NCOLS-1}});
+
+    // Header row (row index 0)
+    AK_HEADERS.forEach((h,c) => {
+      ws[XLSX.utils.encode_cell({r:0,c})] = {t:'s', v:h};
+    });
+
+    // Data rows — row index ri+1, Excel row number ri+2
+    MC1_ANSWERS.forEach((a, ri) => {
+      const r = ri + 1;        // 0-based row index
+      const R = ri + 2;        // Excel row number (1-based, header is row 1)
+      const x = computeAK(a); // pre-compute values to cache alongside formulas
+
+      function cell(c){ return XLSX.utils.encode_cell({r,c}); }
+      function num(v){ return {t:'n', v}; }
+      function str(v){ return {t:'s', v}; }
+      // Include both formula (f) AND cached value (v) so cell shows immediately
+      function fml(f, v){ return {t:'n', f, v}; }
+      function fms(f, v){ return {t:'s', f, v}; }
+
+      // ── INPUTS (columns A–H, indices 0–7) ──
+      ws[cell(0)] = num(a.grupo);           // A  Group
+      ws[cell(1)] = str(a.focus);           // B  Focus currency
+      ws[cell(2)] = str(a.netPos);          // C  Net Position (assets/liabilities)
+      ws[cell(3)] = num(a.netAmt);          // D  Net Amount
+      ws[cell(4)] = num(a.chase);           // E  Chase Rate
+      ws[cell(5)] = num(a.eurUsd);          // F  EUR/USD
+      ws[cell(6)] = num(a.usdMxn);          // G  USD/MXN
+      ws[cell(7)] = num(a.usdCny);          // H  USD/CNY
+
+      // ── Q2 CROSS RATES (I, J) ──
+      ws[cell(8)]  = fml(`G${R}/H${R}`,           x.cnyMxn);   // I  CNY/MXN
+      ws[cell(9)]  = fml(`1/(F${R}*H${R})`,       x.cnyEur);   // J  CNY/EUR
+
+      // ── Q3 CASH FLOWS — BASE RATES (K–N) ──
+      ws[cell(10)] = fml(`10000000/J${R}`,         x.sEur);     // K  Sales EUR → CNY
+      ws[cell(11)] = fml(`50000000/I${R}`,         x.sMxn);     // L  Sales MXN → CNY
+      ws[cell(12)] = fml(`15000000*H${R}`,         x.cUsd);     // M  Cost USD → CNY
+      ws[cell(13)] = fml(`K${R}+L${R}-M${R}`,     x.net);      // N  Net Revenue (CNY)
+
+      // ── Q4 SHOCK — NEW RATES (O–Q) ──
+      ws[cell(14)] = fml(`F${R}/0.95`,             x.nE);       // O  EUR/USD shocked
+      ws[cell(15)] = fml(`G${R}*0.95`,             x.nM);       // P  USD/MXN shocked
+      ws[cell(16)] = fml(`H${R}*0.95`,             x.nC);       // Q  USD/CNY shocked
+
+      // ── Q4 CROSS RATES AFTER SHOCK (R, S) ──
+      ws[cell(17)] = fml(`P${R}/Q${R}`,            x.nCnyMxn);  // R  CNY/MXN shocked
+      ws[cell(18)] = fml(`1/(O${R}*Q${R})`,        x.nCnyEur);  // S  CNY/EUR shocked
+
+      // ── Q4 CASH FLOWS AFTER SHOCK (T–V) ──
+      ws[cell(19)] = fml(`15000000*Q${R}`,         x.nCUsd);    // T  Cost USD shocked → CNY
+      ws[cell(20)] = fml(`K${R}+L${R}-T${R}`,     x.nNet);     // U  Net Rev after shock
+      ws[cell(21)] = fml(`U${R}-N${R}`,            x.nNet - x.net); // V  Change in Net Revenue
+
+      // ── Q6 CHASE QUOTE (W, X) ──
+      ws[cell(22)] = fml(`J${R}/E${R}`,            x.M);        // W  M ratio (market ÷ Chase)
+      const verdict = x.M < 1 ? 'overpriced' : 'underpriced';
+      ws[cell(23)] = fms(`IF(W${R}<1,"overpriced","underpriced")`, verdict); // X  verdict
+    });
+
+    ws['!cols'] = [
+      {wch:7},{wch:7},{wch:14},{wch:13},{wch:18},
+      {wch:9},{wch:9},{wch:9},
+      {wch:34},{wch:34},
+      {wch:34},{wch:34},{wch:34},{wch:42},
+      {wch:26},{wch:26},{wch:26},
+      {wch:26},{wch:26},
+      {wch:34},{wch:40},{wch:34},
+      {wch:30},{wch:14}
+    ];
+
+    // Freeze header row
+    ws['!freeze'] = {xSplit:0, ySplit:1};
+
+    XLSX.utils.book_append_sheet(wb, ws, 'MC1 Answer Key');
+
+    // ─────────────────────────────────────────────────────────────
+    // SHEET 2 — Formula Reference (plain text, no calculations)
+    // ─────────────────────────────────────────────────────────────
+    const REF = [
+      ['Column','Label','Formula','Explanation'],
+      ['A','Group','(input)','Group number (1–11)'],
+      ['B','Focus','(input)','Focus currency: EUR, MXN, or USD'],
+      ['C','Net Position','(input)','assets or liabilities'],
+      ['D','Net Amount','(input)','Notional amount in focus currency'],
+      ['E','Chase Rate','(input)','Forward/quote rate from Chase (CNY/EUR equivalent)'],
+      ['F','EUR/USD','(input)','Spot rate: USD per 1 EUR'],
+      ['G','USD/MXN','(input)','Spot rate: MXN per 1 USD'],
+      ['H','USD/CNY','(input)','Spot rate: CNY per 1 USD'],
+      ['','','',''],
+      ['I','Q2 · CNY/MXN','= G / H','USD/MXN ÷ USD/CNY  →  MXN per CNY (inverted cross rate)'],
+      ['J','Q2 · CNY/EUR','= 1 / (F × H)','1 ÷ (EUR/USD × USD/CNY)  →  EUR per CNY'],
+      ['','','',''],
+      ['K','Q3 · Sales EUR → CNY','= 10,000,000 / J','€10M revenues converted to CNY at col J'],
+      ['L','Q3 · Sales MXN → CNY','= 50,000,000 / I','¥50M revenues converted to CNY at col I'],
+      ['M','Q3 · Cost USD → CNY','= 15,000,000 × H','$15M COGS converted to CNY at spot USD/CNY'],
+      ['N','Q3 · Net Revenue (CNY)','= K + L − M','Total net revenue in CNY at base rates'],
+      ['','','',''],
+      ['O','Q4 · EUR/USD shocked','= F / 0.95','EUR depreciates 5% relative to USD'],
+      ['P','Q4 · USD/MXN shocked','= G × 0.95','MXN appreciates 5% relative to USD'],
+      ['Q','Q4 · USD/CNY shocked','= H × 0.95','CNY appreciates 5% relative to USD'],
+      ['R','Q4 · CNY/MXN shocked','= P / Q','Cross rate CNY/MXN after shock'],
+      ['S','Q4 · CNY/EUR shocked','= 1 / (O × Q)','Cross rate CNY/EUR after shock'],
+      ['T','Q4 · Cost USD shocked → CNY','= 15,000,000 × Q','COGS in CNY using shocked rate (revenues unchanged)'],
+      ['U','Q4 · Net Revenue after Shock','= K + L − T','Net revenue in CNY after shock (K, L unchanged)'],
+      ['V','Q4 · Change in Net Revenue','= U − N','Impact of currency shock on net revenue (CNY)'],
+      ['','','',''],
+      ['W','Q6 · M ratio','= J / E','Market CNY/EUR rate ÷ Chase quoted rate'],
+      ['X','Q6 · Chase verdict','= IF(W<1, "overpriced", "underpriced")',
+        'M < 1 → Chase asks more CNY per EUR than market → Chase is overpriced vs. spot']
+    ];
+    const wsR = XLSX.utils.aoa_to_sheet(REF);
+    wsR['!cols'] = [{wch:7},{wch:28},{wch:28},{wch:70}];
+    XLSX.utils.book_append_sheet(wb, wsR, 'Formula Reference');
+
+    XLSX.writeFile(wb, 'MC1_AnswerKey_AllGroups.xlsx');
+  }
+
+  if(window.XLSX){doExport();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=doExport;
+  document.head.appendChild(s);
+}
+
+// ═══════════════════════════════════════
+// BULK REPORT
+// ═══════════════════════════════════════
+
+let _reportData = [];  // [{sec, grp, gNum, team, grade10, raw, scores, feedback, submitted}]
+
+function genFeedback(d, sc, A, x) {
+  const {grade10,q1a_sc,q1b_sc,q1c_sc,q2_sc,q3_sc,q3a_sc,q4_sc,q5_sc,q5a_sc,q6_sc} = sc;
+  const mVal = parseFloat(String(d.q6?.m||'').replace(/,/g,''));
+  const q6mOk = near405(mVal, x.M, 0.03);
+  const q6dirOk = d.q6?.direction === x.dir;
+
+  const parts = [];
+  const seed = Math.floor(grade10 * 13) % 3;
+
+  // ── Opening — neutral, no cheerleading ──
+  const openers = grade10>=9
+    ? ["Numbers are all there and the write-ups hold up.",
+       "The mechanics were handled correctly and the analysis is clear.",
+       "Clean submission — calculations are right and the explanations make sense."]
+    : grade10>=7.5
+    ? ["Most of the work is correct; a couple of spots could use more attention.",
+       "The core mechanics came through; a few answers or explanations need tightening.",
+       "Generally on track — some gaps in either the numbers or the write-ups."]
+    : grade10>=6
+    ? ["Partial credit across most sections — the method is there but execution broke down in places.",
+       "The setup is reasonable but several answers drifted from what the rates imply.",
+       "Mixed results: some sections landed, others need to be reworked from the formula level."]
+    : ["Several sections are missing or incorrect — worth revisiting the cross-rate and cash flow mechanics before the next one.",
+       "The submission is incomplete or has errors in most numerical sections.",
+       "There are gaps that go beyond arithmetic — the underlying logic for a couple of questions needs reviewing."];
+  parts.push(openers[seed]);
+
+  // ── Q1: functional currency + exposure ──
+  if(q1a_sc===1 && q1b_sc>=1){
+    const netFocus = A.focus==='EUR'?`€${(A.netAmt/1e6).toFixed(0)}M`:A.focus==='MXN'?`MXN ${(A.netAmt/1e6).toFixed(0)}M`:`$${(A.netAmt/1e6).toFixed(0)}M`;
+    const q1cNarr = (d.q1c?.riskNarrative||'').trim();
+    if(q1c_sc<1){
+      // Correct numbers but weak explanation
+      const writHint = q1cNarr.length===0
+        ? `The Q1 identification (CNY functional, ${netFocus} net ${A.netPos}) was right, but the risk narrative was left blank — that's a full point that requires explaining why the foreign-currency exposure creates translation risk for the parent.`
+        : `Q1 numbers were right (CNY, ${netFocus} ${A.netPos}), but the risk write-up was too brief; it should explain what drives the exposure and what happens to the consolidated financials when CNY moves.`;
+      parts.push(writHint);
+    } else {
+      parts.push(`Q1 was handled correctly — CNY as functional, ${netFocus} net ${A.netPos} position, and the risk explanation covered the relevant points.`);
+    }
+  } else if(q1a_sc===0){
+    parts.push(`The functional currency identification in Q1 was wrong — the subsidiary operates and reports in yuan, so CNY is the functional currency regardless of the parent's currency.`);
+  } else if(q1b_sc<0.9){
+    parts.push(`CNY is correct as the functional currency, but the net exposure amount or asset/liability classification in Q1b was off — check which currency the net position is denominated in and whether it represents an asset or a liability for the subsidiary.`);
+  }
+
+  // ── Q2: cross-rates ──
+  if(q2_sc>=1){
+    parts.push(`Cross-rates in Q2 are correct (CNY/MXN = ${x.cnyMxn.toFixed(4)}, CNY/EUR = ${x.cnyEur.toFixed(4)}). One thing that would strengthen the answer is a brief note on which formula was used — it's easy to invert the wrong way and the logic behind the triangular arbitrage is part of what the question is testing.`);
+  } else if(q2_sc===0.5){
+    parts.push(`One of the two cross-rates in Q2 was wrong — the most common mistake is dividing in the wrong direction. CNY/MXN = USD/MXN ÷ USD/CNY; CNY/EUR = 1 ÷ (EUR/USD × USD/CNY). Check which one didn't match.`);
+  } else if(q2_sc===0){
+    parts.push(`Both cross-rates in Q2 were wrong — those derive directly from the spot table using triangular arbitrage: CNY/MXN = USD/MXN ÷ USD/CNY, and CNY/EUR = 1 ÷ (EUR/USD × USD/CNY).`);
+  }
+
+  // ── Q3 cash flows ──
+  if(q3_sc>=0.75){
+    const q3aNarr = (d.q3?.analysis||'').trim();
+    if(q3a_sc<1){
+      const hint = q3aNarr.length===0
+        ? `Q3 cash flow conversions are correct, but the analysis section was left blank — it should explain what the net CNY figure implies for the company's exposure, not just restate the arithmetic.`
+        : `Q3 numbers are right, but the written interpretation could go further — explain what the net CNY revenue means in terms of the company's currency risk, not just how it was calculated.`;
+      parts.push(hint);
+    } else {
+      parts.push(`Q3 cash flows and the written analysis both came out well — the conversion logic and the exposure interpretation are consistent with each other.`);
+    }
+  } else if(q3_sc>0){
+    parts.push(`Some of the Q3 cash flow figures were off — double-check that you're applying the right rate to each leg: CNY/EUR for the European sales, CNY/MXN for the Mexican sales, and USD/CNY directly for the USD cost.`);
+  } else if(q3_sc===0 && q2_sc>0){
+    parts.push(`Q3 cash flows were all wrong despite Q2 being correct — the conversions use the same cross-rates just computed: sales in EUR × (1/cnyEur), sales in MXN × (1/cnyMxn), cost in USD × usdCny.`);
+  }
+
+  // ── Q4 shock ──
+  if(q4_sc>=0.8){
+    const q5aNarr = (d.q5?.analysis||'').trim();
+    if(q5a_sc<0.4){
+      const hint = q5aNarr.length===0
+        ? `Q4 rate adjustments are all correct. The Q5 written section was missing — that's where you're expected to discuss the economic impact of the currency shock, not just redo the math.`
+        : `Q4 is right. The Q5 explanation is too short; it should address whether the company is better or worse off after the shock and why, not just restate the new net revenue.`;
+      parts.push(hint);
+    } else {
+      parts.push(`Q4 and Q5 were handled correctly, numbers and interpretation both.`);
+    }
+  } else if(q4_sc>=0.4){
+    parts.push(`Q4 was partially right — some post-shock rates were off. A 5% USD depreciation means EUR/USD rises (divide by 0.95), while USD/MXN and USD/CNY fall (multiply by 0.95); then re-derive the cross-rates from those.`);
+  } else if(q4_sc===0){
+    parts.push(`Q4 was either left blank or all rates were wrong — apply the 5% USD depreciation to each spot rate first, then recompute the cross-rates the same way as Q2.`);
+  }
+
+  // ── Q6 mispricing ──
+  if(q6_sc>=0.75){
+    const q6txt = (d.q6?.explanation||'').trim();
+    if(q6txt.length < 100){
+      parts.push(`Q6 M ratio (${x.M.toFixed(3)}) and direction (${x.dir}) are correct. The explanation could say more — it should walk through the arbitrage logic: why a ${x.dir} Chase quote implies a specific trading action, not just label it.`);
+    } else {
+      parts.push(`Q6 mispricing analysis is correct — M = ${x.M.toFixed(3)}, Chase is ${x.dir}, and the explanation covers the arbitrage reasoning.`);
+    }
+  } else if(q6mOk && !q6dirOk){
+    parts.push(`M was computed correctly in Q6 (${mVal.toFixed(3)}), but the overpriced/underpriced call was wrong — when M > 1 the market rate is above Chase's quote, so Chase is cheaper; when M < 1 it's the opposite.`);
+  } else if(!q6mOk){
+    parts.push(`The M ratio in Q6 needs to be recalculated — it's the implied CNY/EUR market rate divided by Chase's direct CNY/EUR quote, so M = cnyEur ÷ chase. The correct value is ${x.M.toFixed(3)}.`);
+  }
+
+  // ── Written sections overall check ──
+  const writTot = q1c_sc + q3a_sc + q5a_sc;
+  if(writTot < 1 && q3_sc > 0.5 && q4_sc > 0.5) {
+    // Numbers fine but wrote nothing
+    parts.push(`The numerical work is mostly there, but the written sections (Q1c, Q3 analysis, Q5 impact) were either missing or too brief — together they're worth over 2 points, and they're asking for economic reasoning, not more calculations.`);
+  }
+
+  return parts.filter(Boolean).slice(0, 4).join(' ');
+}
+
+async function openReport() {
+  const rptDiv = document.getElementById('rpt-body');
+  document.getElementById('rpt-overlay').classList.add('show');
+  rptDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)"><div class="spinner"></div>Loading submissions…</div>';
+  _reportData = [];
+
+  const mc = cfg.minicases[0];
+  const secs = mc.sections || [];
+  const expected = [];
+  secs.forEach((s, si) => {
+    if(s.active) {
+      const numG = s.groups || 5;
+      for(let g=1; g<=numG; g++) expected.push({sec:si+1, grp:g, secName:s.name||'Section '+(si+1), id:'mc1_sec'+(si+1)+'_grp'+g});
+    }
+  });
+
+  if(!expected.length){ rptDiv.innerHTML='<div style="padding:24px;color:var(--muted)">No active sections configured.</div>'; return; }
+
+  const snaps = await Promise.all(expected.map(e => db.collection(COLL).doc(e.id).get().catch(()=>null)));
+
+  let submitted=0, gradeSum=0;
+  snaps.forEach((snap, i) => {
+    const e = expected[i];
+    if(!snap||!snap.exists){ _reportData.push({...e, submitted:false}); return; }
+    const d = snap.data();
+    const gNum = d.gNum || 1;
+    const A = MC405_ANS.find(a=>a.grupo===gNum) || MC405_ANS[0];
+    const sc = gradeMC1(d, A);
+    const x = sc.x;
+    const fb = genFeedback(d, sc, A, x);
+    _reportData.push({...e, submitted:true, d, gNum, team:d.team||[], grade10:sc.grade10, raw:sc.raw, sc, fb, A, x, submittedAt:d.submittedAt});
+    submitted++;
+    gradeSum += sc.grade10;
+  });
+
+  const avg = submitted>0 ? (gradeSum/submitted).toFixed(2) : '—';
+  const above7 = _reportData.filter(r=>r.submitted&&r.grade10>=7).length;
+  const below6 = _reportData.filter(r=>r.submitted&&r.grade10<6).length;
+
+  function scoreBar2(sc,mx){
+    const pct=mx===0?0:Math.round(sc/mx*100);
+    const c=pct>=90?'#16a34a':pct>=60?'#ca8a04':'#dc2626';
+    return `<span style="display:inline-flex;align-items:center;gap:3px;font-size:.66rem;"><span style="display:inline-block;width:34px;height:5px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;"><span style="display:block;width:${pct}%;height:100%;background:${c};"></span></span><span style="color:${c};font-weight:700;">${sc.toFixed(1)}/${mx}</span></span>`;
+  }
+  function gradeColor(g){ return g>=9?'#86efac':g>=7.5?'#a7f3d0':g>=6?'#fde68a':'#fca5a5'; }
+
+  let html = `
+  <div class="rpt-summary">
+    <div class="rpt-stat"><div class="sv">${submitted}/${expected.length}</div><div class="sl">Submitted</div></div>
+    <div class="rpt-stat"><div class="sv">${avg}</div><div class="sl">Class Average</div></div>
+    <div class="rpt-stat"><div class="sv">${above7}</div><div class="sl">Grade ≥ 7</div></div>
+    <div class="rpt-stat"><div class="sv">${below6}</div><div class="sl">Grade < 6</div></div>
+    <div style="font-size:.76rem;color:var(--muted);align-self:center;margin-left:auto;">Minicase 1 · ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+  </div>`;
+
+  _reportData.forEach(r => {
+    if(!r.submitted){
+      html += `<div class="rpt-grp"><div class="rpt-grp-hd"><div class="rpt-grade" style="color:#9ca3af;">—</div><div class="rpt-meta">${r.secName} · Group ${r.grp} <span style="font-size:.7rem;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:12px;margin-left:6px;">Not submitted</span></div></div></div>`;
+      return;
+    }
+    const teamStr = r.team.join(' · ') || 'No names recorded';
+    const ts = r.submittedAt ? new Date(r.submittedAt).toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+    const gc = gradeColor(r.grade10);
+    const {sc} = r;
+    html += `
+    <div class="rpt-grp">
+      <div class="rpt-grp-hd">
+        <div class="rpt-grade" style="color:${gc};">${r.grade10.toFixed(1)}<span style="font-size:.7rem;font-weight:400;opacity:.5">/10</span></div>
+        <div class="rpt-meta">${r.secName} · Group ${r.grp} · gNum ${r.gNum} · Focus: ${r.A.focus}${ts?'<br><span style="font-size:.67rem;opacity:.55">'+ts+'</span>':''}</div>
+        <div class="rpt-bars">
+          ${scoreBar2(sc.q1a_sc,1)}${scoreBar2(sc.q1b_sc,1)}${scoreBar2(sc.q1c_sc,1)}
+          ${scoreBar2(sc.q2_sc,1)}${scoreBar2(sc.q3_sc,1)}${scoreBar2(sc.q3a_sc,1)}
+          ${scoreBar2(sc.q4_sc,1)}${scoreBar2(sc.q5_sc,.5)}${scoreBar2(sc.q5a_sc,.5)}
+          ${scoreBar2(sc.q6_sc,1)}
+        </div>
+      </div>
+      <div class="rpt-body" style="padding:12px 18px;">
+        <div class="rpt-team">👥 ${teamStr}</div>
+        <p class="rpt-fb">${r.fb}</p>
+      </div>
+    </div>`;
+  });
+
+  rptDiv.innerHTML = html;
+}
+
+function exportReportCSV(){
+  if(!_reportData.length) return;
+  const rows=[['Section','Group','gNum','Focus','Grade10','Raw/9','Q1a','Q1b','Q1c','Q2','Q3num','Q3text','Q4','Q5num','Q5text','Q6','Team','Submitted']];
+  _reportData.forEach(r=>{
+    if(!r.submitted){ rows.push([r.secName,r.grp,'','','','','','','','','','','','','','','','No']); return; }
+    const sc=r.sc;
+    rows.push([r.secName,r.grp,r.gNum,r.A.focus,r.grade10.toFixed(1),r.raw.toFixed(2),
+      sc.q1a_sc,sc.q1b_sc,sc.q1c_sc,sc.q2_sc,sc.q3_sc,sc.q3a_sc,sc.q4_sc,sc.q5_sc,sc.q5a_sc,sc.q6_sc,
+      r.team.join('; '),'Yes']);
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='mc1_grades_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
 }
 
 loadHub();
