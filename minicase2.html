@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Case 2 — Managing FX Risks</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#002147;--gold:#c49a3c;--light:#f0f4f8;--card:#fff;
+  --success:#1a7f48;--error:#c0392b;--muted:#6b7280;
+  --radius:10px;--shadow:0 2px 12px rgba(0,0,0,.10);
+  --brl:#0d6b3a;--jpy:#8b0000;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--light);color:#1a1a2e;min-height:100vh}
+header{background:var(--navy);color:#fff;padding:0}
+.hdr-top{display:flex;align-items:center;gap:16px;padding:14px 32px;border-bottom:3px solid var(--gold)}
+.hdr-logo{font-size:13px;font-weight:600;letter-spacing:.5px;opacity:.85;white-space:nowrap}
+.hdr-title{flex:1}
+.hdr-title h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.hdr-title p{font-size:13px;opacity:.8;margin-top:2px}
+.group-badge{background:var(--gold);color:#fff;padding:8px 20px;border-radius:24px;font-weight:800;font-size:18px;white-space:nowrap}
+main{max-width:920px;margin:0 auto;padding:24px 16px 60px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:20px}
+.card h2{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h2 .badge{background:var(--navy);color:#fff;border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.card h3{font-size:14px;font-weight:600;color:var(--navy);margin:14px 0 8px}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.team-input{width:100%;border:1.5px solid #dde2ea;border-radius:6px;padding:8px 12px;font-size:14px}
+.team-input:focus{outline:none;border-color:var(--navy)}
+
+/* EXPOSURE VISUAL */
+.exposure-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:560px){.exposure-grid{grid-template-columns:1fr}}
+.exposure-box{border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:6px}
+.exp-in{background:linear-gradient(135deg,#d1fae5,#a7f3d0);border:2px solid #6ee7b7}
+.exp-out{background:linear-gradient(135deg,#fee2e2,#fecaca);border:2px solid #f87171}
+.exp-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+.exp-currency{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.exp-amount{font-size:16px;font-weight:600;font-family:monospace}
+.exp-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.exp-arrow-in{color:#065f46;font-size:24px}
+.exp-arrow-out{color:#991b1b;font-size:24px}
+
+/* MARKET DATA TABLE */
+.mkt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:6px}
+@media(max-width:640px){.mkt-grid{grid-template-columns:1fr 1fr}}
+.mkt-col h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #e5e7eb}
+.mkt-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:14px}
+.mkt-row:last-child{border-bottom:none}
+.mkt-key{color:var(--muted);font-size:13px}
+.mkt-val{font-family:monospace;font-weight:700;color:var(--navy)}
+
+/* INPUTS & FEEDBACK */
+.num-input{border:2px solid #dde2ea;border-radius:6px;padding:9px 12px;font-size:15px;font-family:monospace;width:100%;transition:border-color .2s}
+.num-input:focus{outline:none;border-color:var(--navy)}
+.num-input.ok{border-color:var(--success);background:#f0faf4}
+.num-input.err{border-color:var(--error);background:#fef2f0}
+.input-group{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.input-group label{font-size:13px;color:var(--muted);font-weight:600}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:480px){.input-row{grid-template-columns:1fr}}
+.feedback{display:none;padding:10px 14px;border-radius:6px;font-size:14px;margin-top:10px;font-weight:500;align-items:center;gap:8px;line-height:1.4}
+.feedback.ok{background:#ecfdf5;color:var(--success);border:1px solid #6ee7b7;display:flex}
+.feedback.err{background:#fef2f0;color:var(--error);border:1px solid #fca5a5;display:flex}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:6px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-primary:hover{background:#003a7a}
+.btn-sm{padding:7px 16px;font-size:13px}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* RADIO GROUP */
+.radio-group{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.radio-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:border-color .2s;font-size:14px;font-weight:500}
+.radio-opt:hover{border-color:var(--navy)}
+.radio-opt input{width:16px;height:16px;accent-color:var(--navy)}
+.radio-opt.selected{border-color:var(--navy);background:#f0f4f8}
+
+/* LOCKING */
+.section-locked{position:relative;user-select:none}
+.lock-overlay{position:absolute;inset:0;background:rgba(240,244,248,.93);border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;backdrop-filter:blur(3px)}
+.lock-icon{font-size:36px}
+.lock-msg{font-size:15px;color:var(--muted);font-weight:600;text-align:center;max-width:320px}
+.section-locked .card{opacity:.4;pointer-events:none}
+
+/* PART DIVIDER */
+.part-divider{display:flex;align-items:center;gap:14px;margin:28px 0 12px}
+.part-divider .label{background:var(--navy);color:#fff;padding:5px 18px;border-radius:20px;font-size:13px;font-weight:700;white-space:nowrap}
+.part-divider hr{flex:1;border:none;border-top:2px solid #dde0e6}
+
+/* IRP FORMULA DISPLAY */
+.formula-box{background:#f0f4f8;border:1px solid #dde2ea;border-radius:8px;padding:14px 18px;margin:12px 0;font-size:15px;text-align:center;line-height:2}
+.formula-box .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 4px}
+.formula-box .frac .num,.formula-box .frac .den{padding:0 6px;font-family:monospace}
+.formula-box .frac .bar{border-top:2px solid #374151;width:100%}
+
+/* COMPARISON TABLE (Q2b) */
+.cmp-table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+.cmp-table th{background:#f1f5f9;color:var(--navy);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;text-align:left}
+.cmp-table td{padding:9px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace}
+.cmp-table td:first-child{font-family:'Segoe UI',system-ui,sans-serif;font-weight:600;color:#374151}
+.diff-pos{color:var(--success);font-weight:700}
+.diff-neg{color:var(--error);font-weight:700}
+
+/* DROPDOWN */
+select.num-input{font-family:inherit;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;cursor:pointer}
+
+/* Q AREA (text response) */
+.q-area{width:100%;min-height:80px;border:2px solid #dde2ea;border-radius:6px;padding:10px 14px;font-size:14px;font-family:inherit;resize:vertical;transition:border-color .2s}
+.q-area:focus{outline:none;border-color:var(--navy)}
+.char-count{font-size:11px;color:var(--muted);text-align:right;margin-top:3px}
+
+/* COMPARISON CHART */
+.chart-wrap{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin-top:16px}
+.chart-wrap h4{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:14px}
+.chart-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.chart-label{width:180px;font-size:13px;color:#374151;font-weight:500;flex-shrink:0}
+.chart-bar-track{flex:1;height:28px;background:#e5e7eb;border-radius:4px;position:relative;overflow:hidden}
+.chart-bar{height:100%;border-radius:4px;transition:width .6s ease;display:flex;align-items:center;padding-left:8px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;min-width:4px}
+.bar-baseline{background:#1a7f48}
+.bar-adverse{background:#c0392b}
+.bar-futures{background:#1e40af}
+.chart-val{width:90px;font-size:13px;font-family:monospace;font-weight:700;flex-shrink:0;text-align:right}
+
+/* DEVIL'S ADVOCATE PANEL */
+.da-panel{background:linear-gradient(135deg,#1e3a5f 0%,#002147 100%);border-radius:8px;padding:18px 20px;margin-top:14px;color:#fff}
+.da-panel h4{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.da-bubble{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:14px;font-size:15px;line-height:1.75;color:#e2e8f0;min-height:70px;white-space:pre-wrap}
+.da-bubble.loading{color:rgba(255,255,255,.65);font-style:italic;animation:pulse 1.5s ease-in-out infinite}
+.prof-bubble{background:#f5f3ff;border:2px solid #7c3aed;border-radius:8px;padding:14px 16px;font-size:14px;line-height:1.65;color:#1e1b4b;min-height:60px;white-space:pre-wrap;margin-top:10px}
+.prof-bubble.loading{color:#7c3aed;font-style:italic;animation:pulse 1.5s ease-in-out infinite}
+.refute-bubble{background:linear-gradient(135deg,#1e3a5f 0%,#2d1b69 100%);border-radius:8px;padding:16px 18px;font-size:15px;line-height:1.75;color:#e2e8f0;min-height:60px;white-space:pre-wrap;margin-top:10px}
+.refute-bubble.loading{color:rgba(255,255,255,.6);font-style:italic;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+
+/* STRATEGY DROPDOWN CARD */
+.strategy-card{border:2px solid var(--gold);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;background:#fffbeb}
+.strategy-card h3{font-size:15px;font-weight:700;color:#92400e;margin-bottom:10px}
+
+/* SUBMIT */
+.submit-section{text-align:center;padding:12px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .4s ease forwards}
+.info-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px;font-size:13px;color:#1e40af;margin:10px 0;display:flex;gap:8px;align-items:flex-start}
+.note-box{background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:10px 14px;font-size:13px;color:#92400e;margin:10px 0;display:flex;gap:8px;align-items:flex-start}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBqBIKGxF_Wd2sMYmh0ZBnq0h_8HxqLfRg",
+  authDomain:"fina402-60e86.firebaseapp.com",
+  projectId:"fina402-60e86",
+  storageBucket:"fina402-60e86.firebasestorage.app",
+  messagingSenderId:"1058911893067",
+  appId:"1:1058911893067:web:0ab85f8a600d4fb8d2ffce"
+});
+const db = firebase.firestore();
+
+let ANTHROPIC_KEY = '';
+
+// ═══════════════════════════════════════════════════════════
+// GROUP DATA  (11 groups — all values unique per group)
+// Notation: USD/BRL = BRL per 1 USD;  USD/JPY = JPY per 1 USD
+// i_BRL, i_JPY, i_USD = annualized simple rates
+// xBrl = adverse multiplier for USD/BRL (>1 → BRL weakens)
+// xJpy = adverse multiplier for USD/JPY (<1 → JPY strengthens)
+// fBrl / fJpy = 6-month market futures prices
+// ═══════════════════════════════════════════════════════════
+const MC2_GROUPS = [
+  {g:1,  sBrl:5.00, sJpy:150, iBrl:.100, iJpy:.010, iUsd:.05, brl:10e6, jpy:150e6, fBrl:5.10,  fJpy:148.0, xBrl:1.20, xJpy:0.933},
+  {g:2,  sBrl:5.20, sJpy:145, iBrl:.120, iJpy:.005, iUsd:.05, brl:8e6,  jpy:120e6, fBrl:5.40,  fJpy:142.0, xBrl:1.18, xJpy:0.920},
+  {g:3,  sBrl:4.80, sJpy:155, iBrl:.080, iJpy:.020, iUsd:.05, brl:12e6, jpy:180e6, fBrl:4.95,  fJpy:153.0, xBrl:1.22, xJpy:0.952},
+  {g:4,  sBrl:5.50, sJpy:140, iBrl:.110, iJpy:.015, iUsd:.05, brl:15e6, jpy:200e6, fBrl:5.65,  fJpy:137.0, xBrl:1.15, xJpy:0.900},
+  {g:5,  sBrl:4.90, sJpy:148, iBrl:.090, iJpy:.008, iUsd:.05, brl:9e6,  jpy:130e6, fBrl:5.05,  fJpy:145.0, xBrl:1.25, xJpy:0.941},
+  {g:6,  sBrl:5.30, sJpy:152, iBrl:.130, iJpy:.012, iUsd:.05, brl:11e6, jpy:160e6, fBrl:5.52,  fJpy:150.0, xBrl:1.17, xJpy:0.921},
+  {g:7,  sBrl:5.10, sJpy:158, iBrl:.100, iJpy:.025, iUsd:.05, brl:7e6,  jpy:110e6, fBrl:5.25,  fJpy:155.0, xBrl:1.20, xJpy:0.943},
+  {g:8,  sBrl:4.70, sJpy:142, iBrl:.085, iJpy:.005, iUsd:.05, brl:13e6, jpy:175e6, fBrl:4.82,  fJpy:140.0, xBrl:1.22, xJpy:0.908},
+  {g:9,  sBrl:5.40, sJpy:160, iBrl:.115, iJpy:.018, iUsd:.05, brl:10e6, jpy:140e6, fBrl:5.60,  fJpy:157.0, xBrl:1.16, xJpy:0.931},
+  {g:10, sBrl:5.00, sJpy:145, iBrl:.095, iJpy:.010, iUsd:.05, brl:14e6, jpy:190e6, fBrl:5.15,  fJpy:143.0, xBrl:1.20, xJpy:0.917},
+  {g:11, sBrl:5.25, sJpy:153, iBrl:.125, iJpy:.020, iUsd:.05, brl:8e6,  jpy:125e6, fBrl:5.48,  fJpy:150.0, xBrl:1.18, xJpy:0.948},
+];
+
+let _sec=1, _grp=1, gNum=1, G=null, ANS=null;
+let p1ok=false, p2ok=false;
+let q1a_ok=false, q1b_ok=false, q1c_ok=false;
+let q2a_ok=false, q2b_ok=false, q2c_ok=false;
+let _submitted=false, _daText='', _q3bSubmitted=false, _profRefutationText='';
+let _q2bProfAsked=false, _q2bProfQuestion='';
+
+// ═══════════════════════════════════════════════════════════
+// COMPUTE ANSWERS
+// ═══════════════════════════════════════════════════════════
+function computeAnswers(g){
+  // IRP: F = S × (1 + i_foreign/2) / (1 + i_USD/2)
+  const irpBrl  = g.sBrl * (1 + g.iBrl/2) / (1 + g.iUsd/2);
+  const irpJpy  = g.sJpy * (1 + g.iJpy/2) / (1 + g.iUsd/2);
+
+  // Baseline (no hedge, spot holds)
+  const baseline = g.brl/g.sBrl - g.jpy/g.sJpy;
+
+  // Adverse rates
+  const advBrl  = g.sBrl * g.xBrl;
+  const advJpy  = g.sJpy * g.xJpy;
+  const adverse = g.brl/advBrl - g.jpy/advJpy;
+
+  // Which hurts more?
+  const brlLoss = g.brl/g.sBrl - g.brl/advBrl;  // receivable loses this much
+  const jpyLoss = g.jpy/advJpy - g.jpy/g.sJpy;   // payable costs this much more
+  const biggerLoss = brlLoss >= jpyLoss ? 'brl' : 'jpy';
+
+  // Futures hedge
+  const futuresNet = g.brl/g.fBrl - g.jpy/g.fJpy;
+
+  // Is USD stronger or weaker in futures than IRP predicts?
+  // USD/BRL: higher = USD stronger. fBrl > irpBrl → USD stronger in BRL futures
+  const brlDir = g.fBrl > irpBrl ? 'stronger' : 'weaker';
+  // USD/JPY: higher = USD stronger. fJpy > irpJpy → USD stronger in JPY futures
+  const jpyDir = g.fJpy > irpJpy ? 'stronger' : 'weaker';
+
+  return {irpBrl, irpJpy, baseline, adverse, advBrl, advJpy,
+          brlLoss, jpyLoss, biggerLoss, futuresNet, brlDir, jpyDir};
+}
+
+// ═══════════════════════════════════════════════════════════
+// FORMATTING
+// ═══════════════════════════════════════════════════════════
+function fmtM(v){
+  const sign = v < 0 ? '−' : '';
+  return sign+'$'+(Math.abs(v)/1e6).toFixed(3)+'M';
+}
+function fmtN(v,dec=0){
+  return v.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function pct(v){return (v*100).toFixed(1)+'%'}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function resolveGroupAndStart(){
+  const params = new URLSearchParams(window.location.search);
+  _sec = parseInt(params.get('seccion'))||1;
+  _grp = parseInt(params.get('grupo'))||1;
+  document.getElementById('groupNum').textContent = 'Sec '+_sec+' · Grp '+_grp;
+
+  let offset = 0;
+  // Try FINA405 hub first, fall back to shared hub
+  let hubData = null;
+  try { const s = await db.collection('minicase_hub405').doc('config').get(); if(s.exists) hubData=s.data(); } catch(e){}
+  // Always try FINA402 hub as fallback for anthropicKey (in case it's only set there)
+  if(!hubData || !hubData.anthropicKey){
+    try { const s = await db.collection('minicase_hub').doc('config').get(); if(s.exists){ const d=s.data(); if(d.anthropicKey) ANTHROPIC_KEY=d.anthropicKey; } } catch(e){}
+  }
+  if(hubData){
+    if(hubData.anthropicKey) ANTHROPIC_KEY = hubData.anthropicKey;
+    const mc2 = hubData.minicases && hubData.minicases[1];
+    if(mc2 && mc2.sections){
+      for(let s=0; s<_sec-1 && s<mc2.sections.length; s++)
+        offset += (mc2.sections[s]?.groups || 5);
+    }
+  }
+
+  gNum = ((offset + _grp - 1) % 11) + 1;
+  G   = MC2_GROUPS[gNum - 1];
+  ANS = computeAnswers(G);
+
+  // Check for prior submission
+  try {
+    const snap = await db.collection('mc405_submissions').doc('mc2_sec'+_sec+'_grp'+_grp).get();
+    if(snap.exists){ showAlreadySubmitted(snap.data()); return; }
+  } catch(e){}
+
+  buildTeamGrid();
+  populateDataCards();
+  document.getElementById('loading').style.display='none';
+  document.getElementById('mc-body').style.display='block';
+}
+
+function showAlreadySubmitted(d){
+  document.getElementById('loading').innerHTML = `
+    <div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:10px;padding:28px;text-align:center;color:#065f46;max-width:480px;margin:0 auto">
+      <div style="font-size:40px;margin-bottom:10px">✅</div>
+      <strong style="font-size:17px">This group has already submitted Minicase 2.</strong><br>
+      <span style="font-size:13px;opacity:.8;margin-top:6px;display:block">Submitted ${new Date(d.submittedAt).toLocaleString('en-US',{timeZone:'America/Los_Angeles'})}</span>
+      <span style="font-size:12px;margin-top:8px;display:block">Contact Prof. Ceballos to allow resubmission.</span>
+    </div>`;
+}
+
+function buildTeamGrid(){
+  const g = document.getElementById('teamGrid');
+  for(let i=1;i<=5;i++){
+    const inp = document.createElement('input');
+    inp.className='team-input'; inp.type='text'; inp.id='tm'+i;
+    inp.placeholder='Student '+i+' full name'; inp.autocomplete='off';
+    g.appendChild(inp);
+  }
+}
+
+function populateDataCards(){
+  // Exposure boxes
+  document.getElementById('brlAmt').textContent  = fmtN(G.brl)  + ' BRL';
+  document.getElementById('jpyAmt').textContent  = fmtN(G.jpy)  + ' JPY';
+
+  // Market data
+  document.getElementById('dSBrl').textContent   = G.sBrl.toFixed(4);
+  document.getElementById('dSJpy').textContent   = G.sJpy.toFixed(4);
+  document.getElementById('dIUsd').textContent   = pct(G.iUsd);
+  document.getElementById('dIBrl').textContent   = pct(G.iBrl);
+  document.getElementById('dIJpy').textContent   = pct(G.iJpy);
+  document.getElementById('dFBrl').textContent   = G.fBrl.toFixed(4);
+  document.getElementById('dFJpy').textContent   = G.fJpy.toFixed(4);
+
+  // Adverse scenario display
+  document.getElementById('advBrlRate').textContent = ANS.advBrl.toFixed(4);
+  document.getElementById('advJpyRate').textContent = ANS.advJpy.toFixed(4);
+  document.getElementById('advBrlChg').textContent  = '+'+((G.xBrl-1)*100).toFixed(0)+'%';
+  document.getElementById('advJpyChg').textContent  = ((G.xJpy-1)*100).toFixed(0)+'%';
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function nearAbs(a,b,tol){ return Math.abs(a-b)<=tol; }
+function nearRel(a,b,pct){ return b===0 ? Math.abs(a)<1e-6 : Math.abs(a-b)/Math.abs(b)<=pct; }
+function near(a,b){ return nearRel(a,b,0.02) || nearAbs(a,b,500); } // 2% or $500
+
+function showFB(id,ok,msg){
+  const el=document.getElementById(id);
+  el.className='feedback '+(ok?'ok':'err');
+  el.innerHTML=(ok?'✅ ':'❌ ')+msg;
+  el.style.display='flex';
+}
+function colorInput(id,ok){
+  document.getElementById(id).className='num-input '+(ok?'ok':'err');
+}
+function unlockSection(wrapId,overlayId){
+  const wrap=document.getElementById(wrapId);
+  const ov  =document.getElementById(overlayId);
+  ov.style.transition='opacity .5s'; ov.style.opacity='0';
+  setTimeout(()=>{ wrap.classList.remove('section-locked'); ov.remove(); wrap.classList.add('fade-in'); },500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PART 1 — Basic Checks
+// ═══════════════════════════════════════════════════════════
+function checkQ1a(){
+  const v = parseFloat(document.getElementById('q1a').value.replace(/[$,M]/g,''));
+  if(isNaN(v)){ showFB('q1a_fb',false,'Enter a number in USD (e.g. 1000000 or 1.00 for $1M).'); return; }
+  // accept raw dollars or millions
+  const val = (Math.abs(v) < 1000) ? v*1e6 : v;
+  const ok  = near(val, ANS.baseline);
+  colorInput('q1a',ok);
+  if(ok){ q1a_ok=true; showFB('q1a_fb',true,'Correct — baseline net position is '+fmtM(ANS.baseline)+'.'); }
+  else  { showFB('q1a_fb',false,'Not quite. Compute: (BRL receivable ÷ USD/BRL) − (JPY payable ÷ USD/JPY). Enter the result in USD.'); }
+  tryUnlockPart2();
+}
+
+function checkQ1b(){
+  const v = parseFloat(document.getElementById('q1b').value.replace(/[$,M]/g,''));
+  if(isNaN(v)){ showFB('q1b_fb',false,'Enter the net USD position in dollars.'); return; }
+  const val = (Math.abs(v) < 1000) ? v*1e6 : v;
+  const ok  = near(val, ANS.adverse);
+  colorInput('q1b',ok);
+  if(ok){ q1b_ok=true; showFB('q1b_fb',true,'Correct — under adverse conditions net position drops to '+fmtM(ANS.adverse)+'.'); }
+  else  { showFB('q1b_fb',false,'Not quite. Use the adverse spot rates shown above and repeat the same calculation.'); }
+  tryUnlockPart2();
+}
+
+function checkQ1c(){
+  const sel = document.querySelector('input[name="q1c"]:checked');
+  if(!sel){ showFB('q1c_fb',false,'Select one option above.'); return; }
+  const ok = sel.value === ANS.biggerLoss;
+  if(ok){ q1c_ok=true; showFB('q1c_fb',true,'Correct. The '+ANS.biggerLoss.toUpperCase()+' side caused the bigger dollar loss (BRL loss: '+fmtM(ANS.brlLoss)+', JPY loss: '+fmtM(ANS.jpyLoss)+').'); }
+  else  { showFB('q1c_fb',false,'Look at the dollar loss on each side separately. Which shock caused a larger drop in net USD?'); }
+  tryUnlockPart2();
+}
+
+function tryUnlockPart2(){
+  if(q1a_ok && q1b_ok && q1c_ok && !p1ok){
+    p1ok=true;
+    setTimeout(()=>unlockSection('part2Wrapper','part2Lock'),400);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PART 2 — IRP & Futures Hedge
+// ═══════════════════════════════════════════════════════════
+let _studentIrpBrl=null, _studentIrpJpy=null;
+
+function checkQ2a(){
+  const vBrl = parseFloat(document.getElementById('q2a_brl').value);
+  const vJpy = parseFloat(document.getElementById('q2a_jpy').value);
+  if(isNaN(vBrl)||isNaN(vJpy)){ showFB('q2a_fb',false,'Fill in both forward rates.'); return; }
+  const okBrl = nearRel(vBrl, ANS.irpBrl, 0.02) || nearAbs(vBrl, ANS.irpBrl, 0.01);
+  const okJpy = nearRel(vJpy, ANS.irpJpy, 0.02) || nearAbs(vJpy, ANS.irpJpy, 0.5);
+  colorInput('q2a_brl', okBrl);
+  colorInput('q2a_jpy', okJpy);
+  if(okBrl && okJpy){
+    q2a_ok=true;
+    _studentIrpBrl = vBrl; _studentIrpJpy = vJpy;
+    showFB('q2a_fb',true,'Both correct — F(USD/BRL) = '+ANS.irpBrl.toFixed(4)+', F(USD/JPY) = '+ANS.irpJpy.toFixed(4)+'.');
+    populateCmpTable(vBrl, vJpy);
+    document.getElementById('q2b_section').style.display='block';
+  } else {
+    let msg = [];
+    if(!okBrl) msg.push('USD/BRL forward is off (expected ≈ '+ANS.irpBrl.toFixed(4)+')');
+    if(!okJpy) msg.push('USD/JPY forward is off (expected ≈ '+ANS.irpJpy.toFixed(2)+')');
+    showFB('q2a_fb',false,msg.join('. ')+'. Check the formula: F = S × (1 + i_foreign/2) / (1 + i_USD/2).');
+  }
+}
+
+function populateCmpTable(irpBrl, irpJpy){
+  const diffBrl = G.fBrl - irpBrl;
+  const diffJpy = G.fJpy - irpJpy;
+  document.getElementById('cmp_irpBrl').textContent = irpBrl.toFixed(4);
+  document.getElementById('cmp_irpJpy').textContent = irpJpy.toFixed(4);
+  document.getElementById('cmp_mktBrl').textContent = G.fBrl.toFixed(4);
+  document.getElementById('cmp_mktJpy').textContent = G.fJpy.toFixed(4);
+  const dBrlEl = document.getElementById('cmp_diffBrl');
+  dBrlEl.textContent = (diffBrl>=0?'+':'')+diffBrl.toFixed(4);
+  dBrlEl.className   = diffBrl>=0?'diff-pos':'diff-neg';
+  const dJpyEl = document.getElementById('cmp_diffJpy');
+  dJpyEl.textContent = (diffJpy>=0?'+':'')+diffJpy.toFixed(2);
+  dJpyEl.className   = diffJpy>=0?'diff-pos':'diff-neg';
+}
+
+function checkQ2b(){
+  if(!_q2bProfAsked){ showFB('q2b_check_fb',false,'Submit your explanation to Prof. Ceballos first, then respond to his challenge.'); return; }
+  const rebuttal = document.getElementById('q2b_rebuttal').value.trim();
+  if(rebuttal.length < 60){ showFB('q2b_check_fb',false,'Write at least 60 characters in your response to Prof. Ceballos before continuing.'); return; }
+  const selBrl = document.getElementById('q2b_brl').value;
+  const selJpy = document.getElementById('q2b_jpy').value;
+  const okBrl = selBrl === ANS.brlDir;
+  const okJpy = selJpy === ANS.jpyDir;
+  document.getElementById('q2b_brl').className = 'num-input '+(okBrl?'ok':'err');
+  document.getElementById('q2b_jpy').className = 'num-input '+(okJpy?'ok':'err');
+  if(okBrl && okJpy){
+    q2b_ok=true;
+    showFB('q2b_check_fb',true,'Correct — USD/BRL futures: USD '+ANS.brlDir+' than IRP. USD/JPY futures: USD '+ANS.jpyDir+' than IRP. Unlocking Q2c…');
+    document.getElementById('q2b_rebuttal').disabled = true;
+    document.getElementById('q2c_section').style.display='block';
+  } else {
+    let msg=[];
+    if(!okBrl) msg.push('Check USD/BRL: compare your IRP forward ('+ANS.irpBrl.toFixed(4)+') to the market futures ('+G.fBrl.toFixed(4)+') — which implies a stronger dollar?');
+    if(!okJpy) msg.push('Check USD/JPY: compare your IRP forward ('+ANS.irpJpy.toFixed(2)+') to the market futures ('+G.fJpy.toFixed(2)+').');
+    // Re-enable selects for correction
+    document.getElementById('q2b_brl').disabled = false;
+    document.getElementById('q2b_jpy').disabled = false;
+    showFB('q2b_check_fb',false,msg.join(' '));
+  }
+}
+
+async function submitQ2bArbitrage(){
+  if(_q2bProfAsked) return;
+  const selBrl = document.getElementById('q2b_brl').value;
+  const selJpy = document.getElementById('q2b_jpy').value;
+  const txt    = document.getElementById('q2b_txt').value.trim();
+  if(!selBrl || !selJpy){ showFB('q2b_fb',false,'Select a direction for both currency pairs first.'); return; }
+  if(txt.length < 60){ showFB('q2b_fb',false,'Your explanation is too short ('+txt.length+'/60 chars). Describe the arbitrage implied by the price difference.'); return; }
+
+  // Lock inputs
+  document.getElementById('q2b_txt').disabled = true;
+  document.getElementById('q2b_brl').disabled = true;
+  document.getElementById('q2b_jpy').disabled = true;
+  document.getElementById('q2b_fb').style.display='none';
+
+  const btn = document.getElementById('q2b_prof_btn');
+  btn.disabled=true; btn.textContent='Prof. Ceballos is reading…';
+  const panel = document.getElementById('q2b_prof_panel');
+  panel.style.display='block';
+  const bubble = document.getElementById('q2b_prof_bubble');
+  bubble.className='prof-bubble loading';
+  bubble.textContent='Prof. Ceballos is reading your explanation…';
+
+  const context = `Case numbers for this group: USD/BRL spot=${G.sBrl}, IRP forward=${ANS.irpBrl.toFixed(4)}, market futures=${G.fBrl}. USD/JPY spot=${G.sJpy}, IRP forward=${ANS.irpJpy.toFixed(2)}, market futures=${G.fJpy}.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'content-type':'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model:'claude-haiku-4-5',
+        max_tokens:200,
+        system:`You are Prof. Ceballos, a finance professor. A student has explained the arbitrage implied by IRP deviations. Challenge or push back on their explanation — identify a weak point, a missing step, or something that doesn't quite hold up. Be specific and use the actual case numbers provided. Keep it to 2–3 sentences. Be direct and intellectually rigorous, not hostile.`,
+        messages:[{role:'user', content:`Student's explanation: "${txt}"\n\n${context}\n\nChallenge their answer.`}]
+      })
+    });
+    const data = await resp.json();
+    if(data.content && data.content[0]){
+      _q2bProfAsked=true;
+      _q2bProfQuestion=data.content[0].text;
+      bubble.className='prof-bubble fade-in';
+      bubble.textContent=_q2bProfQuestion;
+      btn.textContent='✓ Submitted to Prof. Ceballos';
+      document.getElementById('q2b_rebuttal_section').style.display='block';
+    } else {
+      bubble.className='prof-bubble';
+      bubble.textContent='Could not reach Prof. Ceballos — check your connection.';
+      btn.disabled=false; btn.textContent='Retry →';
+    }
+  } catch(e){
+    bubble.className='prof-bubble';
+    bubble.textContent='Could not reach AI — check connection or API key.';
+    btn.disabled=false; btn.textContent='Retry →';
+  }
+}
+
+function checkQ2c(){
+  const v = parseFloat(document.getElementById('q2c').value.replace(/[$,M]/g,''));
+  if(isNaN(v)){ showFB('q2c_fb',false,'Enter a dollar amount.'); return; }
+  const val = (Math.abs(v) < 1000) ? v*1e6 : v;
+  const ok  = near(val, ANS.futuresNet);
+  colorInput('q2c',ok);
+  if(ok){
+    q2c_ok=true;
+    showFB('q2c_fb',true,'Correct — futures hedge locks in '+fmtM(ANS.futuresNet)+'.');
+    drawChart();
+    document.getElementById('chartSection').style.display='block';
+    setTimeout(()=>unlockSection('part3Wrapper','part3Lock'),800);
+  } else {
+    showFB('q2c_fb',false,'Not quite. Compute: (BRL receivable ÷ F_BRL) − (JPY payable ÷ F_JPY) using the market futures prices.');
+  }
+}
+
+function drawChart(){
+  const vals = [ANS.baseline, ANS.adverse, ANS.futuresNet];
+  const maxV = Math.max(...vals.map(Math.abs));
+  function bar(id, v, cls){
+    const w = Math.max(3, Math.abs(v)/maxV*100);
+    const el = document.getElementById(id);
+    el.style.width = w+'%';
+    el.className = 'chart-bar '+cls;
+  }
+  bar('barBaseline',  ANS.baseline,   'bar-baseline');
+  bar('barAdverse',   ANS.adverse,    'bar-adverse');
+  bar('barFutures',   ANS.futuresNet, 'bar-futures');
+  document.getElementById('valBaseline').textContent  = fmtM(ANS.baseline);
+  document.getElementById('valAdverse').textContent   = fmtM(ANS.adverse);
+  document.getElementById('valFutures').textContent   = fmtM(ANS.futuresNet);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PART 3 — Devil's Advocate
+// ═══════════════════════════════════════════════════════════
+function onStrategyChange(){
+  const sel = document.getElementById('strategyPick');
+  const val = sel.value;
+  if(!val) return;
+  // Lock immediately — cannot change after selection
+  sel.disabled = true;
+  document.getElementById('strategyLockNote').style.display='block';
+  document.getElementById('part3Questions').style.display='block';
+  callDevilsAdvocate(val);
+}
+
+async function callDevilsAdvocate(strategy){
+  const bubble = document.getElementById('daBubble');
+  bubble.className='da-bubble loading';
+  bubble.textContent='Prof. Ceballos is reading your choice…';
+
+  if(!ANTHROPIC_KEY){
+    bubble.className='da-bubble';
+    bubble.textContent='[API key not configured — ask Prof. Ceballos to set the Anthropic key in the hub settings.]';
+    return;
+  }
+
+  const baseline   = fmtM(ANS.baseline);
+  const adverse    = fmtM(ANS.adverse);
+  const futuresNet = fmtM(ANS.futuresNet);
+  const brlPct     = ((G.xBrl-1)*100).toFixed(0)+'%';
+  const jpyPct     = ((1-G.xJpy)*100).toFixed(0)+'%';
+
+  const userMsg = strategy==='futures'
+    ? `Group chose to hedge with futures. Unhedged baseline: ${baseline}. Futures-hedged outcome: ${futuresNet}. The hedge locks in a position that is ${ANS.baseline > ANS.futuresNet ? 'lower' : 'higher'} than the spot-rate baseline.`
+    : `Group chose NOT to hedge (stay unhedged). Baseline at current spot: ${baseline}. Under the adverse scenario (BRL weakens ${brlPct}, JPY strengthens ${jpyPct}), net position drops to ${adverse} — a loss of ${fmtM(ANS.baseline - ANS.adverse)}.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({
+        model:'claude-haiku-4-5',
+        max_tokens:220,
+        system:`You are Prof. Ceballos, a sharp finance professor at the University of San Diego. A student group just finished an FX risk management case (GlobalParts Inc.) and picked a strategy. Write a devil's advocate challenge in 2–3 crisp sentences. Use their actual numbers. Start directly — no "I see that" or "Interesting choice." Push on the weakest assumption in their reasoning.`,
+        messages:[{role:'user', content: userMsg}]
+      })
+    });
+    const data = await resp.json();
+    bubble.className='da-bubble';
+    bubble.textContent = data.content?.[0]?.text || 'Could not generate a response.';
+    _daText = bubble.textContent;
+    // Mirror challenge in Q3a blue box
+    const q3aChallenge = document.getElementById('q3a_prof_challenge');
+    if(q3aChallenge){ document.getElementById('q3a_prof_text').textContent=_daText; q3aChallenge.style.display='block'; }
+  } catch(e){
+    bubble.className='da-bubble';
+    bubble.textContent='[Could not reach AI — check connection or API key.]';
+  }
+}
+
+async function submitQ3b(){
+  const txt = document.getElementById('q3b_txt').value.trim();
+  if(txt.length < 60){ alert('Write at least 60 characters before submitting your response.'); return; }
+  // Lock textarea and button
+  document.getElementById('q3b_txt').disabled = true;
+  const btn = document.getElementById('q3b_submit_btn');
+  btn.disabled = true; btn.textContent = '✓ Response submitted';
+  // Show refutation panel
+  const panel = document.getElementById('q3b_refutation_panel');
+  panel.style.display='block';
+  const bubble = document.getElementById('q3b_refutation_bubble');
+  bubble.className='prof-bubble loading';
+  bubble.textContent='Prof. Ceballos is reading your response…';
+  _q3bSubmitted = true;
+  if(!ANTHROPIC_KEY){
+    bubble.className='prof-bubble';
+    _profRefutationText='[AI not configured — ask Prof. Ceballos to set the API key.]';
+    bubble.textContent=_profRefutationText; return;
+  }
+  const baseline=fmtM(ANS.baseline), adverse=fmtM(ANS.adverse), futuresNet=fmtM(ANS.futuresNet);
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({
+        model:'claude-haiku-4-5', max_tokens:280,
+        system:`You are Prof. Ceballos, a demanding finance professor at USD. A student responded to a CFO's skepticism about futures hedging. DISAGREE with their answer. Find the weakest point and refute it in 2–3 sharp sentences using actual case numbers: baseline net position ${baseline}, adverse scenario ${adverse}, futures-hedged outcome ${futuresNet}. Be direct — no praise. Start with "That reasoning doesn't hold because…" or similar.`,
+        messages:[{role:'user', content:`Student response: "${txt}"\n\nRefute this. Push back on the weakest assumption using the numbers.`}]
+      })
+    });
+    const data = await resp.json();
+    _profRefutationText = data.content?.[0]?.text || 'Could not generate response.';
+    bubble.className='prof-bubble'; bubble.textContent=_profRefutationText;
+  } catch(e){
+    _profRefutationText='[Could not reach AI — check connection or API key.]';
+    bubble.className='prof-bubble'; bubble.textContent=_profRefutationText;
+  }
+}
+
+function charCount(id, countId, min){
+  const v = document.getElementById(id).value;
+  const el = document.getElementById(countId);
+  el.textContent = v.length+' / '+min+' chars min';
+  el.style.color = v.length >= min ? 'var(--success)' : 'var(--muted)';
+}
+
+// ═══════════════════════════════════════════════════════════
+// SUBMIT
+// ═══════════════════════════════════════════════════════════
+async function submitMinicase(){
+  if(_submitted){ alert('Already submitted.'); return; }
+
+  const team = [1,2,3,4,5].map(i=>document.getElementById('tm'+i)?.value.trim()).filter(Boolean);
+  if(team.length < 2){ alert('Enter at least 2 team member names.'); return; }
+  if(!q1a_ok||!q1b_ok||!q1c_ok){ alert('Complete Part 1 before submitting.'); return; }
+  if(!q2a_ok||!q2b_ok||!q2c_ok){ alert('Complete Part 2 before submitting.'); return; }
+  const strategy = document.getElementById('strategyPick').value;
+  if(!strategy){ alert('Choose a strategy in Part 3.'); return; }
+  const q3a = document.getElementById('q3a_txt').value.trim();
+  const q3b = document.getElementById('q3b_txt').value.trim();
+  const q3b_rebuttal = document.getElementById('q3b_rebuttal').value.trim();
+  if(q3a.length<60){ alert('Part 3a needs at least 60 characters.'); return; }
+  if(q3b.length<60){ alert('Part 3b initial response needs at least 60 characters.'); return; }
+  if(!_q3bSubmitted){ alert('Submit your Part 3b response to Prof. Ceballos first (click "Submit Response").'); return; }
+  if(q3b_rebuttal.length<60){ alert('Write your rebuttal in Part 3b (at least 60 characters).'); return; }
+  if(!confirm('¿Listos para entregar?\n\nOnce you submit, you cannot change your answers.\nMake sure all team members have reviewed the responses before confirming.')) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span>Submitting…';
+
+  const payload = {
+    section: _sec, group: _grp, gNum, team,
+    submittedAt: new Date().toISOString(),
+    part1: {
+      q1a: document.getElementById('q1a').value,
+      q1b: document.getElementById('q1b').value,
+      q1c: document.querySelector('input[name="q1c"]:checked')?.value,
+    },
+    part2: {
+      irpBrl: document.getElementById('q2a_brl').value,
+      irpJpy: document.getElementById('q2a_jpy').value,
+      brlDir: document.getElementById('q2b_brl').value,
+      jpyDir: document.getElementById('q2b_jpy').value,
+      arbitrageText: document.getElementById('q2b_txt').value,
+      arbitrageRebuttal: document.getElementById('q2b_rebuttal').value,
+      futuresNet: document.getElementById('q2c').value,
+    },
+    part3: { strategy, q3a, q3b, q3b_rebuttal, professorChallenge: _daText, profRefutation: _profRefutationText },
+    q2bProfQuestion: _q2bProfQuestion
+  };
+
+  try {
+    await db.collection('mc405_submissions').doc('mc2_sec'+_sec+'_grp'+_grp).set(payload);
+    _submitted=true;
+    document.getElementById('submitSection').innerHTML=`
+      <div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:10px;padding:24px;text-align:center;color:#065f46">
+        <div style="font-size:36px;margin-bottom:8px">✅</div>
+        <strong style="font-size:16px">Submission received!</strong><br>
+        <span style="font-size:13px;opacity:.8">Submitted ${new Date().toLocaleString('en-US',{timeZone:'America/Los_Angeles'})}</span>
+      </div>`;
+  } catch(e){
+    btn.disabled=false; btn.innerHTML='SUBMIT';
+    alert('Submission failed: '+e.message+'. Try again or contact Prof. Ceballos.');
+  }
+}
+
+window.addEventListener('load', resolveGroupAndStart);
+</script>
+</head>
+<body>
+
+<div id="loading" style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:16px;color:var(--muted)">Loading your group data…</div>
+
+<div id="mc-body" style="display:none">
+<header>
+  <div class="hdr-top">
+    <div class="hdr-logo">USD | Knauss School of Business</div>
+    <div class="hdr-title">
+      <h1>Mini Case 2: Managing FX Risks</h1>
+      <p>FINA 405 — International Financial Management</p>
+    </div>
+    <div class="group-badge" id="groupNum">Sec 1 · Grp 1</div>
+  </div>
+</header>
+
+<main>
+
+<!-- TEAM NAMES -->
+<div class="card" style="margin-top:20px">
+  <h2><span class="badge">👥</span> Team Members</h2>
+  <div class="team-grid" id="teamGrid"></div>
+</div>
+
+<!-- CASE OVERVIEW -->
+<div class="card">
+  <h2><span class="badge">🏭</span> GlobalParts Inc. — Situation Overview</h2>
+  <p style="font-size:14px;color:#374151;margin-bottom:16px;line-height:1.6">
+    GlobalParts Inc. is a U.S.-based manufacturer with two foreign-currency cash flows due in <strong>6 months</strong>.
+    Your group must analyze the FX risk and decide whether to hedge using futures contracts.
+  </p>
+
+  <div class="exposure-grid">
+    <div class="exposure-box exp-in">
+      <div class="exp-label">📥 Receivable (inflow)</div>
+      <div class="exp-currency">Brazilian Real (BRL)</div>
+      <div class="exp-amount" id="brlAmt">—</div>
+      <div class="exp-desc">From a Brazilian client, due in 6 months</div>
+    </div>
+    <div class="exposure-box exp-out">
+      <div class="exp-label">📤 Payable (outflow)</div>
+      <div class="exp-currency">Japanese Yen (JPY)</div>
+      <div class="exp-amount" id="jpyAmt">—</div>
+      <div class="exp-desc">To a Japanese supplier, due in 6 months</div>
+    </div>
+  </div>
+
+  <div class="mkt-grid">
+    <div class="mkt-col">
+      <h4>📊 Spot Rates</h4>
+      <div class="note-box" style="font-size:12px;padding:6px 10px;margin-bottom:8px">⚠️ Notation: USD/XXX = units of XXX per $1 USD</div>
+      <div class="mkt-row"><span class="mkt-key">USD/BRL (spot)</span><span class="mkt-val" id="dSBrl">—</span></div>
+      <div class="mkt-row"><span class="mkt-key">USD/JPY (spot)</span><span class="mkt-val" id="dSJpy">—</span></div>
+    </div>
+    <div class="mkt-col">
+      <h4>📈 Interest Rates (annual)</h4>
+      <div class="mkt-row"><span class="mkt-key">i<sub>USD</sub></span><span class="mkt-val" id="dIUsd">—</span></div>
+      <div class="mkt-row"><span class="mkt-key">i<sub>BRL</sub></span><span class="mkt-val" id="dIBrl">—</span></div>
+      <div class="mkt-row"><span class="mkt-key">i<sub>JPY</sub></span><span class="mkt-val" id="dIJpy">—</span></div>
+    </div>
+    <div class="mkt-col">
+      <h4>🔒 6-Month Futures</h4>
+      <div class="mkt-row"><span class="mkt-key">F(USD/BRL)</span><span class="mkt-val" id="dFBrl">—</span></div>
+      <div class="mkt-row"><span class="mkt-key">F(USD/JPY)</span><span class="mkt-val" id="dFJpy">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PART 1 ────────────────────────────────────────────── -->
+<div class="part-divider"><div class="label">Part 1 — Knowing Your Exposure</div><hr></div>
+
+<div class="info-box">ℹ️ All three questions in Part 1 must be correct to unlock Part 2.</div>
+
+<!-- Q1a -->
+<div class="card">
+  <h2><span class="badge">1a</span> Baseline Net Position (No Hedge)</h2>
+  <p style="font-size:14px;color:#374151;margin-bottom:14px;line-height:1.6">
+    If GlobalParts does <em>not</em> hedge and spot rates remain unchanged for 6 months,
+    what is the <strong>net USD position</strong> when both cash flows settle?
+  </p>
+  <div class="info-box">ℹ️ Net USD = (BRL receivable ÷ USD/BRL) − (JPY payable ÷ USD/JPY)</div>
+  <div class="input-group" style="margin-top:12px">
+    <label for="q1a">Net USD position ($)</label>
+    <input class="num-input" type="number" id="q1a" placeholder="e.g. 1000000">
+    <div class="hint">Enter in dollars. You can also enter millions (e.g. 1.5 for $1.5M).</div>
+  </div>
+  <button class="btn btn-primary btn-sm" onclick="checkQ1a()">Check Answer</button>
+  <div class="feedback" id="q1a_fb"></div>
+</div>
+
+<!-- Q1b -->
+<div class="card">
+  <h2><span class="badge">1b</span> Adverse Scenario</h2>
+  <p style="font-size:14px;color:#374151;margin-bottom:12px;line-height:1.6">
+    Suppose FX markets move against GlobalParts over the next 6 months:
+  </p>
+  <div class="mkt-grid" style="margin-bottom:14px">
+    <div class="mkt-col">
+      <h4>🔴 Adverse Spot Rates</h4>
+      <div class="mkt-row">
+        <span class="mkt-key">USD/BRL</span>
+        <span class="mkt-val" id="advBrlRate">—</span>
+        <span style="font-size:11px;color:var(--error);margin-left:6px" id="advBrlChg"></span>
+      </div>
+      <div class="mkt-row">
+        <span class="mkt-key">USD/JPY</span>
+        <span class="mkt-val" id="advJpyRate">—</span>
+        <span style="font-size:11px;color:var(--error);margin-left:6px" id="advJpyChg"></span>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:12px">
+    Using these adverse exchange rates, what is the new net USD position?
+  </p>
+  <div class="input-group">
+    <label for="q1b">Net USD position under adverse scenario ($)</label>
+    <input class="num-input" type="number" id="q1b" placeholder="e.g. 595238">
+  </div>
+  <button class="btn btn-primary btn-sm" onclick="checkQ1b()">Check Answer</button>
+  <div class="feedback" id="q1b_fb"></div>
+</div>
+
+<!-- Q1c -->
+<div class="card">
+  <h2><span class="badge">1c</span> Which Exposure Hurts More?</h2>
+  <p style="font-size:14px;color:#374151;margin-bottom:12px;line-height:1.6">
+    Comparing the baseline to the adverse scenario, <strong>which exposure caused the larger dollar loss</strong> for GlobalParts?
+  </p>
+  <div class="radio-group">
+    <label class="radio-opt">
+      <input type="radio" name="q1c" value="brl">
+      The <strong>BRL receivable</strong> — the weaker BRL means GlobalParts receives fewer dollars
+    </label>
+    <label class="radio-opt">
+      <input type="radio" name="q1c" value="jpy">
+      The <strong>JPY payable</strong> — the stronger JPY means GlobalParts must pay more dollars
+    </label>
+    <label class="radio-opt">
+      <input type="radio" name="q1c" value="equal">
+      Both sides caused roughly the same loss
+    </label>
+  </div>
+  <button class="btn btn-primary btn-sm" onclick="checkQ1c()" style="margin-top:6px">Check Answer</button>
+  <div class="feedback" id="q1c_fb"></div>
+</div>
+
+<!-- ── PART 2 ────────────────────────────────────────────── -->
+<div id="part2Wrapper" class="section-locked">
+  <div class="lock-overlay" id="part2Lock">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-msg">Complete Part 1 correctly to unlock Part 2</div>
+  </div>
+
+  <div class="part-divider"><div class="label">Part 2 — IRP &amp; the Futures Hedge</div><hr></div>
+
+  <!-- Q2a: IRP -->
+  <div class="card">
+    <h2><span class="badge">2a</span> Covered Interest Rate Parity (IRP)</h2>
+    <p style="font-size:14px;color:#374151;margin-bottom:12px;line-height:1.6">
+      Use the <strong>Covered Interest Rate Parity</strong> formula to compute the theoretical 6-month forward rate for each currency pair.
+      Use simple interest (half the annual rate for 6 months).
+    </p>
+    <div class="formula-box">
+      <strong>F (USD/XXX)</strong> &nbsp;=&nbsp; S (USD/XXX) &nbsp;×&nbsp;
+      <span class="frac">
+        <span class="num">1 + i<sub>XXX</sub> × ½</span>
+        <span class="bar"></span>
+        <span class="den">1 + i<sub>USD</sub> × ½</span>
+      </span>
+    </div>
+    <div class="input-row">
+      <div class="input-group">
+        <label>Theoretical F(USD/BRL) — IRP forward</label>
+        <input class="num-input" type="number" id="q2a_brl" step="0.0001" placeholder="e.g. 5.1220">
+      </div>
+      <div class="input-group">
+        <label>Theoretical F(USD/JPY) — IRP forward</label>
+        <input class="num-input" type="number" id="q2a_jpy" step="0.01" placeholder="e.g. 147.07">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="checkQ2a()">Check Answer</button>
+    <div class="feedback" id="q2a_fb"></div>
+  </div>
+
+  <!-- Q2b: Market Comparison (hidden until Q2a ok) -->
+  <div id="q2b_section" style="display:none">
+  <div class="card">
+    <h2><span class="badge">2b</span> IRP vs. Market Futures</h2>
+    <p style="font-size:14px;color:#374151;margin-bottom:12px;line-height:1.6">
+      The table below compares your IRP-implied forward rates to the actual market futures prices.
+      A positive difference means the market futures price is higher than IRP predicts — the dollar is trading <em>stronger</em> in that futures market.
+    </p>
+    <table class="cmp-table">
+      <thead><tr><th>Pair</th><th>Your IRP Forward</th><th>Market Futures</th><th>Difference (Mkt − IRP)</th></tr></thead>
+      <tbody>
+        <tr><td>USD/BRL</td><td id="cmp_irpBrl">—</td><td id="cmp_mktBrl">—</td><td id="cmp_diffBrl">—</td></tr>
+        <tr><td>USD/JPY</td><td id="cmp_irpJpy">—</td><td id="cmp_mktJpy">—</td><td id="cmp_diffJpy">—</td></tr>
+      </tbody>
+    </table>
+    <div class="card h3" style="margin-top:14px;font-size:14px;font-weight:600;color:var(--navy)">For each currency pair, is the dollar trading stronger or weaker in the futures market than IRP predicts?</div>
+    <div class="input-row" style="margin-top:10px">
+      <div class="input-group">
+        <label>USD/BRL futures — dollar is:</label>
+        <select class="num-input" id="q2b_brl">
+          <option value="">Select…</option>
+          <option value="stronger">Stronger than IRP predicts</option>
+          <option value="weaker">Weaker than IRP predicts</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>USD/JPY futures — dollar is:</label>
+        <select class="num-input" id="q2b_jpy">
+          <option value="">Select…</option>
+          <option value="stronger">Stronger than IRP predicts</option>
+          <option value="weaker">Weaker than IRP predicts</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-group" style="margin-top:10px">
+      <label>What arbitrage does this signal? Explain briefly. (60 chars min)</label>
+      <textarea class="q-area" id="q2b_txt" rows="3" oninput="charCount('q2b_txt','q2b_cc',60)" placeholder="Which currency is overpriced/underpriced relative to IRP? What trades would an arbitrageur make?"></textarea>
+      <div class="char-count" id="q2b_cc">0 / 60 chars min</div>
+    </div>
+    <div class="feedback" id="q2b_fb"></div>
+    <button class="btn btn-primary btn-sm" id="q2b_prof_btn" onclick="submitQ2bArbitrage()" style="background:#7c3aed;margin-top:10px">
+      Submit to Prof. Ceballos →
+    </button>
+
+    <!-- Prof. challenge panel (shown after API call) -->
+    <div id="q2b_prof_panel" style="display:none;margin-top:16px;border-top:2px solid #e5e7eb;padding-top:14px">
+      <p style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:6px">🎓 Prof. Ceballos responds:</p>
+      <div class="prof-bubble" id="q2b_prof_bubble"></div>
+
+      <!-- Rebuttal (shown after Prof. speaks) -->
+      <div id="q2b_rebuttal_section" style="display:none;margin-top:14px">
+        <div class="input-group">
+          <label style="color:#374151;font-weight:600">Your response to Prof. Ceballos: (60 chars min)</label>
+          <textarea class="q-area" id="q2b_rebuttal" rows="3" oninput="charCount('q2b_rebuttal','q2b_rebuttal_cc',60)" placeholder="I understand your point, but the data shows…"></textarea>
+          <div class="char-count" id="q2b_rebuttal_cc">0 / 60 chars min</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="checkQ2b()" style="margin-top:6px">Check &amp; Continue →</button>
+        <div class="feedback" id="q2b_check_fb"></div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Q2c: Futures Hedge (hidden until Q2b ok) -->
+  <div id="q2c_section" style="display:none">
+  <div class="card">
+    <h2><span class="badge">2c</span> Hedged Outcome (Futures)</h2>
+    <p style="font-size:14px;color:#374151;margin-bottom:12px;line-height:1.6">
+      If GlobalParts locks in both exposures using the <strong>market futures prices</strong>,
+      what net USD position does it guarantee in 6 months?
+    </p>
+    <div class="info-box">ℹ️ Net USD (hedged) = (BRL receivable ÷ F_BRL) − (JPY payable ÷ F_JPY)</div>
+    <div class="input-group" style="margin-top:12px">
+      <label>Net USD position with futures hedge ($)</label>
+      <input class="num-input" type="number" id="q2c" placeholder="e.g. 947297">
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="checkQ2c()">Check Answer</button>
+    <div class="feedback" id="q2c_fb"></div>
+
+    <!-- Comparison Chart (shown after Q2c correct) -->
+    <div id="chartSection" style="display:none">
+    <div class="chart-wrap fade-in" style="margin-top:18px">
+      <h4>📊 Scenario Comparison — GlobalParts Net USD Position</h4>
+      <div class="chart-row">
+        <div class="chart-label">✅ Baseline (no hedge)</div>
+        <div class="chart-bar-track"><div class="chart-bar bar-baseline" id="barBaseline" style="width:0%"></div></div>
+        <div class="chart-val" id="valBaseline">—</div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-label">⚠️ Adverse (no hedge)</div>
+        <div class="chart-bar-track"><div class="chart-bar bar-adverse" id="barAdverse" style="width:0%"></div></div>
+        <div class="chart-val" id="valAdverse">—</div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-label">🔒 Futures hedge</div>
+        <div class="chart-bar-track"><div class="chart-bar bar-futures" id="barFutures" style="width:0%"></div></div>
+        <div class="chart-val" id="valFutures">—</div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px">
+        The futures hedge eliminates the downside risk — but notice it also locks in a position that may differ from the spot-rate baseline. That trade-off is what Part 3 is about.
+      </p>
+    </div>
+    </div>
+  </div>
+  </div>
+
+</div><!-- /part2Wrapper -->
+
+<!-- ── PART 3 ────────────────────────────────────────────── -->
+<div id="part3Wrapper" class="section-locked">
+  <div class="lock-overlay" id="part3Lock">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-msg">Complete Part 2 (including Q2c) to unlock Part 3</div>
+  </div>
+
+  <div class="part-divider"><div class="label">Part 3 — Strategy &amp; Devil's Advocate</div><hr></div>
+
+  <!-- Strategy Choice -->
+  <div class="strategy-card">
+    <h3>🎯 Your Group's Recommendation</h3>
+    <p style="font-size:14px;color:#92400e;margin-bottom:12px">
+      Before writing, choose the strategy your group is recommending for GlobalParts:
+    </p>
+    <select class="num-input" id="strategyPick" onchange="onStrategyChange()" style="max-width:360px;font-size:14px">
+      <option value="">Select a strategy…</option>
+      <option value="futures">Hedge with futures</option>
+      <option value="unhedged">Stay unhedged</option>
+    </select>
+    <div id="strategyLockNote" style="display:none;margin-top:8px;font-size:12px;color:#b45309;font-weight:600">🔒 Strategy locked — this choice cannot be changed after selection.</div>
+  </div>
+
+  <!-- Prof. Ceballos Devil's Advocate — hidden; text mirrors into Q3a blue box -->
+  <div id="daPanel" style="display:none">
+    <div class="da-bubble" id="daBubble"></div>
+  </div>
+
+  <!-- Part 3 Questions (hidden until strategy chosen) -->
+  <div id="part3Questions" style="display:none">
+
+  <div class="card">
+    <h2><span class="badge">3a</span> Respond to Prof. Ceballos &amp; Justify Your Choice</h2>
+    <p style="font-size:14px;color:#374151;margin-bottom:10px;line-height:1.6">
+      Prof. Ceballos just challenged your strategy choice (shown in blue below).
+      Address his challenge directly, then walk through your group's numbers to justify your recommendation.
+    </p>
+    <div id="q3a_prof_challenge" style="display:none;background:#eff6ff;border:2px solid #3b82f6;border-radius:8px;padding:14px 16px;font-size:14px;color:#1e40af;margin-bottom:14px;line-height:1.7">
+      <strong>💬 Prof. Ceballos:</strong><br>
+      <span id="q3a_prof_text"></span>
+    </div>
+    <textarea class="q-area" id="q3a_txt" rows="5" oninput="charCount('q3a_txt','q3a_cc',80)"
+      placeholder="Prof. Ceballos raises a good point, but our group recommends [strategy] because…"></textarea>
+    <div class="char-count" id="q3a_cc">0 / 80 chars min</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="badge">3b</span> The CFO Challenge — Live Debate</h2>
+    <p style="font-size:14px;color:#374151;margin-bottom:12px;line-height:1.6">
+      Your CFO says: <em>"The futures price is already different from spot — we'd be locking in a rate that isn't the market rate today. Hedging only makes sense when the forward is better than spot. Why would we use futures here?"</em>
+    </p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:6px"><strong>Step 1:</strong> Write your initial response. Correct any misconceptions and explain what a futures hedge actually buys you.</p>
+    <textarea class="q-area" id="q3b_txt" rows="5" oninput="charCount('q3b_txt','q3b_cc',80)"
+      placeholder="The CFO's reasoning misses the point because..."></textarea>
+    <div class="char-count" id="q3b_cc">0 / 80 chars min</div>
+    <button id="q3b_submit_btn" onclick="submitQ3b()" style="margin-top:10px;padding:9px 20px;background:var(--navy);color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">
+      Submit Response to Prof. Ceballos →
+    </button>
+
+    <!-- AI Refutation (appears after submit) -->
+    <div id="q3b_refutation_panel" style="display:none;margin-top:18px;border-top:1px solid #e5e7eb;padding-top:16px">
+      <h4 style="color:#7c3aed;margin-bottom:8px;font-size:15px">🎓 Prof. Ceballos disagrees…</h4>
+      <div class="prof-bubble" id="q3b_refutation_bubble"></div>
+      <p style="font-size:13px;color:var(--muted);margin-top:14px;margin-bottom:6px"><strong>Step 2 — Your Rebuttal:</strong> Prof. Ceballos just pushed back. Now defend your position using specific numbers from the minicase.</p>
+      <textarea class="q-area" id="q3b_rebuttal" rows="5" oninput="charCount('q3b_rebuttal','q3b_rebuttal_cc',80)"
+        placeholder="Prof. Ceballos, the data shows..."></textarea>
+      <div class="char-count" id="q3b_rebuttal_cc">0 / 80 chars min</div>
+    </div>
+  </div>
+
+  </div><!-- /part3Questions -->
+
+</div><!-- /part3Wrapper -->
+
+<!-- SUBMIT -->
+<div class="card submit-section" id="submitSection">
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+    Review all answers before submitting. Once submitted, this group cannot resubmit without professor approval.
+  </p>
+  <button class="btn btn-primary" id="submitBtn" onclick="submitMinicase()" style="font-size:15px;padding:12px 36px">
+    SUBMIT
+  </button>
+</div>
+
+</main>
+</div><!-- /mc-body -->
+</body>
+</html>

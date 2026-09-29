@@ -585,8 +585,8 @@ async function testAnthropicKey(){
   try{
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-allow-browser':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:20,messages:[{role:'user',content:'Say OK'}]})
+      headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-4-5',max_tokens:20,messages:[{role:'user',content:'Say OK'}]})
     });
     const data=await resp.json();
     if(data.content?.[0]?.text){
