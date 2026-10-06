@@ -790,7 +790,148 @@ async function loadSubmission(){
   }catch(e){div.innerHTML='<div class="sub-empty" style="color:var(--red)">Error: '+e.message+'</div>';}
 }
 
+// ── MC2 GRADING ─────────────────────────────────────────────────────────────
+function gradeMC2(d){
+  const gNum=d.gNum||1;
+  const G2=MC2_GROUPS.find(g=>g.g===gNum)||MC2_GROUPS[0];
+  const exp=computeAK2(G2);
+  const p1=d.part1||{}, p2=d.part2||{}, p3=d.part3||{};
+
+  // Part 1
+  const q1a_sc = near405(numParse(p1.q1a), exp.baseline, 0.025) ? 1 : 0;
+  const q1b_sc = near405(numParse(p1.q1b), exp.adverse,  0.025) ? 1 : 0;
+  const q1c_sc = p1.q1c === exp.biggerLoss.toLowerCase() ? 1 : 0;
+
+  // Part 2
+  const q2a_brl_sc = near405(numParse(p2.irpBrl), exp.irpBrl, 0.025) ? 0.75 : 0;
+  const q2a_jpy_sc = near405(numParse(p2.irpJpy), exp.irpJpy, 0.025) ? 0.75 : 0;
+  const q2b_brl_sc = (p2.brlDir||'').toLowerCase()===exp.brlDir ? 0.5 : 0;
+  const q2b_jpy_sc = (p2.jpyDir||'').toLowerCase()===exp.jpyDir ? 0.5 : 0;
+  const q2b_txt_sc = textScore(p2.arbitrageText, 0.5);
+  const q2c_sc    = near405(numParse(p2.futuresNet), exp.futuresNet, 0.025) ? 1 : 0;
+
+  // Part 3
+  const q3a_sc = textScore(p3.q3a, 1);
+  const q3b_sc = textScore(p3.q3b, 0.5) + textScore(p3.q3b_rebuttal, 0.5);
+
+  const raw = q1a_sc+q1b_sc+q1c_sc+q2a_brl_sc+q2a_jpy_sc+q2b_brl_sc+q2b_jpy_sc+q2b_txt_sc+q2c_sc+q3a_sc+q3b_sc;
+  const grade10 = Math.round(raw/9*100)/10;
+  return {grade10,raw,q1a_sc,q1b_sc,q1c_sc,q2a_brl_sc,q2a_jpy_sc,q2b_brl_sc,q2b_jpy_sc,q2b_txt_sc,q2c_sc,q3a_sc,q3b_sc,exp,G2};
+}
+
+// ── MC2 SUBMISSION RENDERER ──────────────────────────────────────────────────
+function renderSubmissionMC2(d,docId,mcNum,sec,grp){
+  const div=document.getElementById('sub-data');
+  const team=Array.isArray(d.team)?d.team:[];
+  const submittedAt=d.submittedAt?new Date(d.submittedAt).toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}):'—';
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function fEdit(id,val,type){
+    if(type==='textarea') return `<textarea id="ef_${id}" style="width:100%;border:1px solid #dde0e6;border-radius:4px;padding:4px 7px;font-size:.81rem;font-family:inherit;resize:vertical;min-height:64px;">${esc(val)}</textarea>`;
+    return `<input type="text" id="ef_${id}" value="${esc(val)}" style="width:100%;border:1px solid #dde0e6;border-radius:4px;padding:4px 7px;font-size:.81rem;">`;
+  }
+  function chk(ok){return ok?'<span style="color:#16a34a">✅</span>':'<span style="color:#dc2626">❌</span>';}
+  function scoreBar(sc,mx){const pct=mx===0?0:Math.round(sc/mx*100);const c=pct>=90?'#16a34a':pct>=60?'#ca8a04':'#dc2626';return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:.74rem;"><span style="display:inline-block;width:44px;height:6px;background:#374151;border-radius:3px;overflow:hidden;"><span style="display:block;width:${pct}%;height:100%;background:${c};"></span></span><span style="color:${c};font-weight:700;">${sc.toFixed(2)}/${mx}</span></span>`;}
+  function cmpRow(lbl,editId,stuVal,expDisp,pts,ok){
+    return `<tr><td style="padding:5px 8px;font-size:.79rem;color:#6b7280;font-weight:600;white-space:nowrap;">${lbl}</td>
+    <td style="padding:4px 8px;">${fEdit(editId,stuVal,'input')}</td>
+    <td style="padding:5px 8px;font-size:.79rem;color:#374151;white-space:nowrap;">${esc(expDisp)}</td>
+    <td style="padding:5px 8px;text-align:center;">${chk(ok)}</td>
+    <td style="padding:5px 8px;text-align:right;font-size:.75rem;color:#9ca3af;">${pts}</td></tr>`;
+  }
+  function selRow(lbl,editId,stuVal,expDisp,pts,ok){
+    return `<tr><td style="padding:5px 8px;font-size:.79rem;color:#6b7280;font-weight:600;white-space:nowrap;">${lbl}</td>
+    <td style="padding:4px 8px;font-size:.82rem;">${esc(stuVal)}</td>
+    <td style="padding:5px 8px;font-size:.79rem;color:#374151;">${expDisp}</td>
+    <td style="padding:5px 8px;text-align:center;">${chk(ok)}</td>
+    <td style="padding:5px 8px;text-align:right;font-size:.75rem;color:#9ca3af;">${pts}</td></tr>`;
+  }
+  function txtRow(lbl,editId,val,sc,mx){
+    const w=(val||'').trim().split(/\s+/).filter(Boolean).length;
+    const c=sc>=mx?'#16a34a':sc>0?'#ca8a04':'#dc2626';
+    const badge=sc>=mx?'✅':sc>0?'½':'⬜';
+    return `<tr><td style="padding:5px 8px;font-size:.79rem;color:#6b7280;font-weight:600;vertical-align:top;padding-top:9px;white-space:nowrap;">${lbl}</td>
+    <td colspan="2" style="padding:4px 8px;">${fEdit(editId,val,'textarea')}<div style="font-size:.7rem;color:#9ca3af;margin-top:2px;">${w} words</div></td>
+    <td style="padding:5px 8px;text-align:center;color:${c};font-weight:700;vertical-align:top;padding-top:9px;">${badge}</td>
+    <td style="padding:5px 8px;text-align:right;font-size:.75rem;color:#9ca3af;vertical-align:top;padding-top:9px;">${sc.toFixed(2)}/${mx}</td></tr>`;
+  }
+  function secHdr(title){return `<tr><td colspan="5" style="background:#f0f4ff;padding:5px 10px;font-size:.75rem;font-weight:700;color:#002147;border-top:2px solid #dde0e6;">${title}</td></tr>`;}
+
+  const {grade10,raw,q1a_sc,q1b_sc,q1c_sc,q2a_brl_sc,q2a_jpy_sc,q2b_brl_sc,q2b_jpy_sc,q2b_txt_sc,q2c_sc,q3a_sc,q3b_sc,exp,G2}=gradeMC2(d);
+  const gCol=grade10>=8?'#86efac':grade10>=6?'#fde68a':'#fca5a5';
+  const gNum=d.gNum||1;
+  const p1=d.part1||{}, p2=d.part2||{}, p3=d.part3||{};
+  const fmtDol=n=>n<0?'−$'+(Math.abs(n)/1e6).toFixed(3)+'M':'$'+(n/1e6).toFixed(3)+'M';
+
+  let teamHtml='';
+  for(let i=0;i<5;i++) teamHtml+=`<div style="display:flex;gap:8px;margin-bottom:5px;align-items:center;"><label style="font-size:.78rem;color:#6b7280;min-width:72px;">Student ${i+1}</label>${fEdit('team_'+i,team[i]||'','input')}</div>`;
+
+  div.innerHTML=`
+  <div class="sub-card">
+    <div class="sub-card-hd">
+      <span>Minicase 2 · Section ${sec} · Group ${grp} · gNum ${gNum}</span>
+      <span style="font-size:.72rem;opacity:.7">${submittedAt}</span>
+    </div>
+    <div style="background:#1e3a5f;color:#fff;padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div style="font-size:1.6rem;font-weight:800;color:${gCol};">${grade10.toFixed(1)}<span style="font-size:.82rem;font-weight:400;opacity:.6"> / 10</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:.78rem;">
+        <span>P1a ${scoreBar(q1a_sc,1)}</span>
+        <span>P1b ${scoreBar(q1b_sc,1)}</span>
+        <span>P1c ${scoreBar(q1c_sc,1)}</span>
+        <span>Q2a-BRL ${scoreBar(q2a_brl_sc,.75)}</span>
+        <span>Q2a-JPY ${scoreBar(q2a_jpy_sc,.75)}</span>
+        <span>Q2b-dir ${scoreBar(q2b_brl_sc+q2b_jpy_sc,1)}</span>
+        <span>Q2b-txt ${scoreBar(q2b_txt_sc,.5)}</span>
+        <span>Q2c ${scoreBar(q2c_sc,1)}</span>
+        <span>Q3a ${scoreBar(q3a_sc,1)}</span>
+        <span>Q3b ${scoreBar(q3b_sc,1)}</span>
+      </div>
+    </div>
+    <div style="padding:16px 18px;">
+      <div style="font-size:.8rem;font-weight:700;color:#6b7280;margin-bottom:8px;">TEAM MEMBERS</div>
+      ${teamHtml}
+    </div>
+    <div style="padding:0 18px 18px;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        <thead><tr style="background:#f0f4ff;">
+          <th style="padding:6px 8px;text-align:left;font-size:.74rem;color:#002147;">Question</th>
+          <th style="padding:6px 8px;text-align:left;font-size:.74rem;color:#002147;">Student Answer</th>
+          <th style="padding:6px 8px;text-align:left;font-size:.74rem;color:#002147;">Expected</th>
+          <th style="padding:6px 8px;text-align:center;font-size:.74rem;color:#002147;">✓</th>
+          <th style="padding:6px 8px;text-align:right;font-size:.74rem;color:#002147;">Pts</th>
+        </tr></thead>
+        <tbody>
+          ${secHdr('Part 1 — Exposure Analysis')}
+          ${cmpRow('Q1a Baseline net USD','p1_q1a',p1.q1a,fmtDol(exp.baseline),'1',q1a_sc===1)}
+          ${cmpRow('Q1b Adverse net USD','p1_q1b',p1.q1b,fmtDol(exp.adverse),'1',q1b_sc===1)}
+          ${selRow('Q1c Bigger exposure','','p1.q1c',p1.q1c,exp.biggerLoss.toLowerCase(),'1',q1c_sc===1)}
+          ${secHdr('Part 2 — IRP & Arbitrage')}
+          ${cmpRow('Q2a IRP F(USD/BRL)','p2_irpBrl',p2.irpBrl,exp.irpBrl.toFixed(4),'0.75',q2a_brl_sc>0)}
+          ${cmpRow('Q2a IRP F(USD/JPY)','p2_irpJpy',p2.irpJpy,exp.irpJpy.toFixed(2),'0.75',q2a_jpy_sc>0)}
+          ${selRow('Q2b BRL direction','','',p2.brlDir||'—',exp.brlDir,'0.5',q2b_brl_sc>0)}
+          ${selRow('Q2b JPY direction','','',p2.jpyDir||'—',exp.jpyDir,'0.5',q2b_jpy_sc>0)}
+          ${txtRow('Q2b Arbitrage explanation','p2_arbTxt',p2.arbitrageText,q2b_txt_sc,0.5)}
+          ${cmpRow('Q2c Futures net USD','p2_futNet',p2.futuresNet,fmtDol(exp.futuresNet),'1',q2c_sc===1)}
+          ${secHdr('Part 3 — Strategy & Defense')}
+          ${selRow('Strategy chosen','','',p3.strategy||'—','futures or unhedged','—',true)}
+          ${txtRow('Q3a Justification (vs Prof.)','p3_q3a',p3.q3a,q3a_sc,1)}
+          ${txtRow('Q3b CFO response','p3_q3b',p3.q3b,textScore(p3.q3b,.5),.5)}
+          ${txtRow('Q3b Rebuttal (vs Prof.)','p3_reb',p3.q3b_rebuttal,textScore(p3.q3b_rebuttal,.5),.5)}
+        </tbody>
+      </table>
+    </div>
+    <div class="sub-actions">
+      <span class="sub-msg" id="sub-save-msg"></span>
+      <button class="btn-danger" onclick="resetSubmission('${docId}')">🗑 Clear Submission</button>
+    </div>
+  </div>`;
+
+  window._subData=JSON.parse(JSON.stringify(d));
+  window._subDocId=docId;
+}
+
+// ── DISPATCHER ───────────────────────────────────────────────────────────────
 function renderSubmission(d,docId,mcIdx,mcNum,sec,grp){
+  if(mcIdx===1) return renderSubmissionMC2(d,docId,mcNum,sec,grp);
   const div=document.getElementById('sub-data');
   const team=Array.isArray(d.team)?d.team:[];
   const submittedAt=d.submittedAt?new Date(d.submittedAt).toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}):'—';
@@ -800,7 +941,6 @@ function renderSubmission(d,docId,mcIdx,mcNum,sec,grp){
     return `<input type="text" id="ef_${id}" value="${esc(val)}" style="width:100%;border:1px solid #dde0e6;border-radius:4px;padding:4px 7px;font-size:.81rem;">`;
   }
 
-  // Only MC1 grading supported so far
   const gNum=d.gNum||1;
   const A=MC405_ANS.find(a=>a.grupo===gNum)||MC405_ANS[0];
   const {grade10,raw,q1a_sc,q1b_sc,q1c_sc,q2_sc,q3_sc,q3a_sc,q4_sc,q5_sc,q5a_sc,q6_sc,x}=gradeMC1(d,A);
