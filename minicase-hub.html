@@ -393,6 +393,7 @@ function renderGrid(){
   grid.style.display='grid';
   grid.innerHTML='';
   cfg.minicases.forEach((mc,i)=>{
+    if(i===2)mc={...mc,description:'Group report · up to 5 students · EURUSD and EUR interest-rate risk · two board conversations'};
     const n=i+1, active=mc.active;
     const secs=Array.isArray(mc.sections)?mc.sections:[];
     const activeSecs=secs.filter(s=>s.active);
@@ -403,14 +404,15 @@ function renderGrid(){
     card.innerHTML=
       '<div class="card-hd"><span class="num">Minicase '+n+'</span><span class="pill '+(active?'open':'closed')+'">'+(active?'Open':'Not Available')+'</span></div>'+
       '<div class="card-bd"><div class="title">'+(mc.title||'Minicase '+n)+'</div>'+(mc.description?'<div class="desc">'+mc.description+'</div>':'')+'</div>'+
-      '<div class="card-ft"><span class="groups-info">'+(active&&activeSecs.length?activeSecs.length+' section'+(activeSecs.length>1?'s':'')+' · '+totalGroups+' groups':'')+'</span>'+
-      (active?'<button class="open-btn">Select Group →</button>':'<span class="soon">Coming soon</span>')+'</div>';
+      '<div class="card-ft"><span class="groups-info">'+(i===2?'Section 01 · Groups of up to 5':(active&&activeSecs.length?activeSecs.length+' section'+(activeSecs.length>1?'s':'')+' · '+totalGroups+' groups':''))+'</span>'+
+      (active?'<button class="open-btn">'+(i===2?'Open Minicase →':'Select Group →')+'</button>':'<span class="soon">Coming soon</span>')+'</div>';
     grid.appendChild(card);
   });
 }
 
 // GROUP SELECTOR
 function openGS(idx){
+  if(idx===2){window.location.href='minicase3.html?seccion=1';return;}
   currentMC=idx;
   const mc=cfg.minicases[idx];
   document.getElementById('gs-title').textContent=(mc.title||'Minicase '+(idx+1))+' — Select Your Group';
@@ -683,15 +685,15 @@ function gradeMC1(d, A){
 // SUBMISSION STATUS
 async function loadStatusForMC(mcIdx){
   const mc=cfg.minicases[mcIdx];
-  const secs=mc.sections||[];
+  const secs=mcIdx===2?(mc.sections||[]).slice(0,1):(mc.sections||[]);
   const mcNum=mcIdx+1;
   const statusDiv=document.getElementById('mc-status-'+mcIdx);
   statusDiv.innerHTML='<span style="color:var(--muted);font-size:.8rem">⏳ Loading…</span>';
   const expected=[];
   secs.forEach((s,si)=>{
     if(s.active){
-      const numG=s.groups||5;
-      for(let g=1;g<=numG;g++) expected.push({sec:si+1,grp:g,id:'mc'+mcNum+'_sec'+(si+1)+'_grp'+g,secName:s.name||'Section '+(si+1)});
+      const numG=mcNum===3?Math.max(8,s.groups||8):(s.groups||5);
+      for(let g=1;g<=numG;g++) expected.push({sec:si+1,grp:g,id:mcNum===3?'mc3_v4_sec1_grp'+g:'mc'+mcNum+'_sec'+(si+1)+'_grp'+g,secName:s.name||'Section '+(si+1)});
     }
   });
   if(!expected.length){statusDiv.innerHTML='<span style="color:var(--muted);font-size:.8rem">No active sections.</span>';return;}
@@ -757,7 +759,7 @@ function subMcChanged(){
   grpSel.disabled=true;
   if(mcIdx===''){secSel.disabled=true;return;}
   const mc=cfg.minicases[parseInt(mcIdx)];
-  (mc.sections||[]).forEach((s,si)=>{
+  (parseInt(mcIdx)===2?(mc.sections||[]).slice(0,1):(mc.sections||[])).forEach((s,si)=>{
     const opt=document.createElement('option');opt.value=si+1;opt.textContent=s.name||'Section '+(si+1);secSel.appendChild(opt);
   });
   secSel.disabled=false;
@@ -770,7 +772,7 @@ function subSecChanged(){
   if(secVal===''){grpSel.disabled=true;return;}
   const mc=cfg.minicases[mcIdx];
   const secIdx=parseInt(secVal)-1;
-  const numGroups=(mc.sections[secIdx]||{}).groups||5;
+  const numGroups=mcIdx===2?Math.max(8,(mc.sections[0]||{}).groups||8):((mc.sections[secIdx]||{}).groups||5);
   for(let g=1;g<=numGroups;g++){const opt=document.createElement('option');opt.value=g;opt.textContent='Group '+g;grpSel.appendChild(opt);}
   grpSel.disabled=false;
 }
@@ -781,13 +783,34 @@ async function loadSubmission(){
   const div=document.getElementById('sub-data');
   if(mcIdx===''||sec===''||grp===''){div.innerHTML='<div class="sub-empty">Please select minicase, section, and group.</div>';return;}
   const mcNum=parseInt(mcIdx)+1;
-  const docId='mc'+mcNum+'_sec'+sec+'_grp'+grp;
+  const docId=mcNum===3?'mc3_v4_sec1_grp'+grp:'mc'+mcNum+'_sec'+sec+'_grp'+grp;
   div.innerHTML='<div class="sub-empty">⏳ Loading…</div>';
   try{
     const snap=await db.collection(COLL).doc(docId).get();
     if(!snap.exists){div.innerHTML='<div class="sub-empty">No submission found for Minicase '+mcNum+', Section '+sec+', Group '+grp+'.</div>';return;}
+    if(mcNum===3){renderSubmissionMC3(snap.data());return;}
     renderSubmission(snap.data(),docId,parseInt(mcIdx),mcNum,sec,grp);
   }catch(e){div.innerHTML='<div class="sub-empty" style="color:var(--red)">Error: '+e.message+'</div>';}
+}
+
+function renderSubmissionMC3(d){
+  const host=document.getElementById('sub-data');host.replaceChildren();
+  const title=document.createElement('h3');title.textContent='MC3 · Group '+d.group+' · '+(d.team||[]).join(', ');host.append(title);
+  const stamp=document.createElement('p');stamp.textContent='Submitted: '+d.submittedAt;host.append(stamp);
+  const note=document.createElement('p');note.textContent='Numerical checks were completed in the minicase. Written explanations and board defenses require instructor review.';host.append(note);
+  for(const [key,value] of Object.entries(d.answers||{})){
+    const heading=document.createElement('strong');heading.textContent=key.replace(/([A-Z])/g,' $1');
+    const content=document.createElement('p');content.textContent=String(value);host.append(heading,content);
+  }
+  for(const [number,agent] of Object.entries(d.agents||{})){
+    const h=document.createElement('h4');h.textContent='Board meeting '+number;
+    const text=document.createElement('p');text.textContent='Step 1 · Opening question: '+agent.challenge;host.append(h,text);
+    for(const [label,value] of [['Step 2 · Locked explanation',agent.defenseSubmitted],['Step 3 · Board follow-up',agent.refutation?.challenge],['Step 4 · Final opinion',d.answers?.['finalOpinion'+number]]]){
+      if(value){const paragraph=document.createElement('p');paragraph.textContent=label+': '+value;host.append(paragraph);}
+    }
+  }
+  const button=document.createElement('button');button.textContent='Download group report';
+  button.onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));a.download='MC3-group-'+d.group+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};host.append(button);
 }
 
 // ── MC2 GRADING ─────────────────────────────────────────────────────────────
@@ -1654,3 +1677,4 @@ loadHub();
 </script>
 </body>
 </html>
+

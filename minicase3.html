@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Case 3 — Amazon's Financing Decision</title>
+<link rel="stylesheet" href="minicase3.css">
+<style>.formula{white-space:normal;overflow-wrap:anywhere}.feedback{min-height:24px}.numeric-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.numeric-grid label{margin:0}.checked{border-color:#15803d!important}.wrong{border-color:#b91c1c!important}button{margin-top:10px}textarea{min-height:95px}.pacing{grid-template-columns:repeat(4,1fr)}@media(max-width:600px){.numeric-grid{grid-template-columns:1fr}.pacing{grid-template-columns:repeat(2,1fr)}}@media print{button,.step-lock,#access{display:none}.card{break-inside:avoid}header{color:black;background:white}}</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="mc3-groups405.js"></script><script src="mc3-roster405.js"></script><script src="mc3-model405.js"></script>
+<script src="mc3-charts405.js"></script><script defer src="minicase3.js"></script></head>
+<body><header><div class="header-inner">
+<a class="back" href="minicase-hub.html">← Minicase Hub</a> · <a class="back" href="minicase3.html?preview=1">Practice preview</a> · <a class="back" href="mc3-instructor.html">Instructor setup</a>
+<div class="eyebrow">UNIVERSITY OF SAN DIEGO · KNAUSS SCHOOL OF BUSINESS</div>
+<div class="headline"><div><h1>Mini Case 3: Amazon's Financing Decision</h1><p>FINA 405 — International Financial Management · Fall 2026</p></div><span class="group-badge" id="groupNum">Section 01</span></div></div></header>
+<main><p id="access" class="notice" role="status">Loading the group minicase…</p>
+<div id="case-body" hidden>
+<section class="card intro"><div class="eyebrow gold">CALCULATE · EXPLAIN · DEFEND</div><h2>How should Amazon hedge its financing?</h2>
+<p>You are Amazon's treasury team in a hypothetical March 2026 case. Evaluate its existing euro bond, compare interest-rate and FX hedges, and defend a recommendation to Amazon’s board at two meetings, two years apart.</p>
+
+<p><strong>60 minutes total.</strong> Group submission: choose your group and select up to five students from Section 01. Work together on one device and submit one shared report. Use your calculator, class notes and the AI-simulated board. Discussion with classmates is welcome.</p>
+<p>All rates compound <strong>annually</strong>; the bond pays <strong>annual coupons</strong>. Formulas stay visible. Enter rates as percentages (6.25, not 0.0625). Enter financing amounts in <strong>millions</strong>. Click <strong>Check answers & continue</strong> to unlock each next part. Changing an answer requires checking it again. Written responses are reviewed by the instructor; minimum length is not a grade.</p>
+</section>
+<section class="card"><h2>Your group</h2><p>Select 1–5 students physically present. Names registered in another group are unavailable.</p><label for="group-select">Group</label><select id="group-select"><option value="">— Choose group —</option></select><div id="teamGrid" class="team-grid"></div><button id="start-group">Register / resume group</button><p id="student-status" role="status"></p></section>
+<section class="card"><h2>The financing situation</h2>
+<p>It is March 2026. Amazon has a €1 billion euro bond outstanding, with two years remaining. Analyze one €1,000 bond. Today is immediately after the annual coupon payment.</p>
+<div class="table-scroll"><table><thead><tr><th>Existing bond</th><th>Value</th></tr></thead><tbody>
+<tr><td>Face value per bond</td><td>€1,000</td></tr>
+<tr><td>Current market price</td><td>€950</td></tr>
+<tr><td>Annual coupon rate</td><td>4.0%, paid annually</td></tr>
+<tr><td>Remaining maturity</td><td>2 years · March 2028</td></tr>
+</tbody></table></div></section>
+<section class="card"><h2>Market quotes available today — March 2026</h2>
+<div class="table-scroll"><table><thead><tr><th>Current quote</th><th>Value</th></tr></thead><tbody>
+<tr><td>Two-year EUR zero rate</td><td>4.0%, annually compounded</td></tr>
+<tr><td>Three-year EUR zero rate</td><td>4.8%, annually compounded</td></tr>
+<tr><td>Spot EURUSD today</td><td>1.08 USD per EUR</td></tr>
+<tr><td>Two-year forward EURUSD quoted today</td><td>1.12 USD per EUR</td></tr>
+</tbody></table></div>
+<p><strong>EURUSD means USD units per 1 EUR.</strong> A rise means EUR strengthens; a fall means USD strengthens. Multiply EUR amounts by EURUSD to obtain USD. The spot rate applies to conversion today. The forward rate is available today for a conversion in two years; it is not a forecast of the future spot rate. Future market conditions will be revealed only after your first board defense.</p>
+<p class="small">Educational case data, not current market quotes. All rates compound annually. Ignore fees, taxes and credit spreads in numerical calculations; discuss remaining credit and currency risks in your recommendations.</p>
+</section>
+<section class="card"><h2>Risk before the decision</h2><p>Illustrative monthly paths ending in March 2026. These are <strong>synthetic teaching data, not historical market observations or forecasts</strong>. They show how currency and interest-rate changes can affect financing.</p><h3>EURUSD · USD per EUR</h3><div id="fx-risk-chart"></div><p class="small">Higher EURUSD means each euro converts into more dollars; lower EURUSD means fewer dollars per euro.</p><h3>EUR two-year zero rate · annual %</h3><div id="rate-risk-chart"></div><p class="small">A moving EUR yield curve illustrates rate uncertainty. The current two-year zero rate is not a forecast of the future one-year borrowing rate.</p></section><div id="steps"></div>
+<section class="card" id="finish"><h2>Your group report</h2><p id="summary">Complete all seven parts to submit.</p>
+<p class="small">Grading (10 points): bond 1.5 · FRA rate and settlements 2.5 · FX calculations 1.5 · strategy comparison 1.5 · two board defenses 2 · final recommendation 1.</p>
+<button id="save-draft" class="secondary">Save group draft</button> <button id="submitBtn" disabled>Submit group report</button>
+<p id="draft-status" role="status"></p>
+<p id="submit-error" class="error" role="alert"></p></section>
+</div><section id="receipt" class="card" hidden><h2>Your group report is submitted</h2><p id="receipt-text"></p><p><a href="minicase-hub.html">Return to hub</a></p></section>
+</main><footer>FINA 405 · Prof. Ceballos · Annual compounding throughout · Section 01 only</footer></body></html>
+
