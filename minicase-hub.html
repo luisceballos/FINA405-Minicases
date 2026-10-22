@@ -190,7 +190,7 @@ const COLL='mc405_submissions';
 
 <div class="banner">
   <span class="banner-icon">⚠️</span>
-  <p><strong>Attendance required.</strong> If you are not physically present in class when your group submits this minicase, <strong>you will individually receive a grade of 0</strong> — regardless of your group's submission. Your group's grade is not affected.</p>
+  <p><strong>Attendance required.</strong> If you are not physically present in class when your minicase is submitted, <strong>you will individually receive a grade of 0</strong>. For group minicases, this applies regardless of your group's submission and does not affect your group's grade. MC3 requires your individual submission and your own analysis and opinions.</p>
 </div>
 
 <main>
@@ -404,7 +404,7 @@ function renderGrid(){
     card.innerHTML=
       '<div class="card-hd"><span class="num">Minicase '+n+'</span><span class="pill '+(active?'open':'closed')+'">'+(active?'Open':'Not Available')+'</span></div>'+
       '<div class="card-bd"><div class="title">'+(mc.title||'Minicase '+n)+'</div>'+(mc.description?'<div class="desc">'+mc.description+'</div>':'')+'</div>'+
-      '<div class="card-ft"><span class="groups-info">'+(i===2?'Section 01 · Groups of up to 5':(active&&activeSecs.length?activeSecs.length+' section'+(activeSecs.length>1?'s':'')+' · '+totalGroups+' groups':''))+'</span>'+
+      '<div class="card-ft"><span class="groups-info">'+(i===2?'Section 01 · Individual submission':(active&&activeSecs.length?activeSecs.length+' section'+(activeSecs.length>1?'s':'')+' · '+totalGroups+' groups':''))+'</span>'+
       (active?'<button class="open-btn">'+(i===2?'Open Minicase →':'Select Group →')+'</button>':'<span class="soon">Coming soon</span>')+'</div>';
     grid.appendChild(card);
   });

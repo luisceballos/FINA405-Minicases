@@ -19,9 +19,9 @@ function saveLocal(){
 const numeric=(id,label)=>`<label for="${id}">${label}<input id="${id}" type="number" step="any" data-number="${id}" autocomplete="off"><span id="${id}-fb" class="small" role="status"></span></label>`;
 const written=(id,label)=>`<label for="${id}">${label}</label><textarea id="${id}" minlength="51" maxlength="2000" placeholder="Use two or three sentences and the case numbers. More than 50 characters."></textarea><p id="${id}-count" class="small" aria-live="polite"></p>`;
 const formula=s=>`<div class="formula">${s}</div>`;
-const strategy=id=>`<label for="${id}">Choose ymy strategy</label><select id="${id}"><option value="">— Select —</option><option value="none">No hedge</option><option value="fra">FRA only</option><option value="fx">FX forward only</option><option value="both">FRA + FX forward</option></select>`;
+const strategy=id=>`<label for="${id}">Choose your strategy</label><select id="${id}"><option value="">— Select —</option><option value="none">No hedge</option><option value="fra">FRA only</option><option value="fx">FX forward only</option><option value="both">FRA + FX forward</option></select>`;
 const BOARD1=2, BOARD2=5;
-const debateGuide='<div class="note"><strong>Four-step board conversation (required)</strong><ol><li>The board asks about ymy strategy because it wants to understand why you believe it fits the firm’s needs.</li><li>You explain your reasoning using the case numbers. Once submitted, this answer is permanently locked.</li><li>The board asks a follow-up question based on your explanation and the case numbers to learn more about your reasoning.</li><li>You give your final opinion in a separate answer, explaining what you maintain or reconsider and why. You cannot edit your step 2 answer.</li></ol></div>';
+const debateGuide='<div class="note"><strong>Four-step board conversation (required)</strong><ol><li>The board asks about your strategy because it wants to understand why you believe it fits the firm’s needs.</li><li>You explain your reasoning using the case numbers. Once submitted, this answer is permanently locked.</li><li>The board asks a follow-up question based on your explanation and the case numbers to learn more about your reasoning.</li><li>You give your final opinion in a separate answer, explaining what you maintain or reconsider and why. You cannot edit your step 2 answer.</li></ol></div>';
 const debateEnd=n=>`<button id="refute${n}">Submit step 2 answer — lock answer and hear the board’s follow-up</button><p id="refute${n}-status" role="status"></p><div id="refute${n}-panel" hidden><h3>Step 3 · Board follow-up question</h3><div id="refute${n}-text" class="challenge"></div><p id="refute${n}-source" class="small"></p>${written('finalOpinion'+n,'Step 4 · Your final opinion: answer the follow-up question with numbers. Explain what you maintain or reconsider; your step 2 answer remains unchanged.')}</div>`;
 
 function buildSteps(){
@@ -46,12 +46,12 @@ function buildSteps(){
  ${numeric('forwardUSD','USD proceeds locked today for March 2028 ($m)')}
  <p class="small">The spot benchmark is not a promise about future proceeds. EUR amounts multiplied by EURUSD give USD amounts. Keep full precision in K.</p>`},
  {title:'Board meeting I · Explain the initial strategy',nums:[],texts:['strategyReason','defense1','finalOpinion1'],selects:['strategy'],
- html:`<p><strong>March 2026.</strong> The board prioritizes predictable funding and interest expense. Choose no hedge, FRA only, FX forward only, or both. The board wants to understand why you believe ymy strategy is appropriate, using your explanation and the case numbers. Future market conditions have not been revealed.</p>
+ html:`<p><strong>March 2026.</strong> The board prioritizes predictable funding and interest expense. Choose no hedge, FRA only, FX forward only, or both. The board wants to understand why you believe your strategy is appropriate, using your explanation and the case numbers. Future market conditions have not been revealed.</p>
  ${formula('With FRA: annual reference interest = N × K<br>With FX forward: USD proceeds = N × F')}
- ${debateGuide}${strategy('strategy')}${written('strategyReason','Recommend a strategy using today’s numbers. Compare an alternative, justify the trade-off, and state the risk left uncovered.')}
+ ${debateGuide}${strategy('strategy')}${written('strategyReason','Explain your own recommended strategy using today’s numbers. Compare an alternative, justify the trade-off, and state the risk left uncovered.')}
  <button id="ask1">Present my strategy to the board</button><p id="agent1-status" role="status"></p><div id="agent1-panel" hidden><h3>Step 1 · Board opening question</h3><div id="agent1-text" class="challenge"></div><p id="agent1-source" class="small"></p>
- ${written('defense1','Step 2 · Help the board understand your reasoning. Why do you believe ymy strategy fits the objective? Use the case numbers.')}${debateEnd(1)}</div>
- <p class="small">Checking this part commits you’s strategy. It cannot be rewritten after the future market is revealed.</p>`},
+ ${written('defense1','Step 2 · Help the board understand your reasoning. Why do you believe your strategy fits the objective? Use the case numbers.')}${debateEnd(1)}</div>
+ <p class="small">Checking this part commits your strategy. It cannot be rewritten after the future market is revealed.</p>`},
  {title:'Q4 · Interest-rate outcome at 7.5%',nums:['highSettlement','unhedgedRate','highInterest','effectiveRate','highEffective'],texts:[],
  html:`<p><strong>March 2028.</strong> The market rate R is now <strong>7.5%</strong>. K is your original FRA rate. N = €${M.N}m and the borrowing lasts Δ = 1 year. Calculate the FRA alternative even if you did not choose it.</p>
  <p><strong>Classroom settlement convention:</strong> the FRA payoff is exchanged at the end of the loan, in March 2029. We use an end-of-period settlement, so no present-value adjustment is required. Positive payoff means Amazon receives.</p>
@@ -85,13 +85,13 @@ function buildSteps(){
  ${formula('USD proceeds difference = your USD proceeds − N × S')}
  ${numeric('fxDifference','USD proceeds difference versus no hedge ($m, signed)')}
  <button id="check-outcomes" class="secondary">Check realized results</button><p id="outcome-feedback" role="status"></p>
- ${debateGuide}${written('outcomeReason','Assess the original strategy using ymy results. Identify protection, opportunity cost and whether the original objective was met.')}
+ ${debateGuide}${written('outcomeReason','In your opinion, how well did your original strategy work? Use your results. Identify protection, opportunity cost and whether the original objective was met.')}
  <button id="ask2">Present my results to the board</button><p id="agent2-status" role="status"></p><div id="agent2-panel" hidden><h3>Step 1 · Board opening question</h3><div id="agent2-text" class="challenge"></div><p id="agent2-source" class="small"></p>
  ${written('defense2','Step 2 · Explain your reasoning to the board. How do the results relate to your objective and the information available at the original decision date?')}${debateEnd(2)}</div>`},
  {title:'Lessons and future financing policy',nums:[],texts:['finalReason','risk'],selects:['finalStrategy'],
  html:`<p>Review the individual report. Recommend a policy for a new financing decision; do not rewrite the original strategy.</p>
  ${formula('Hedged reference interest = N × K × Δ<br>Forward-hedged USD proceeds = N × F<br>Euro repayment = N + interest')}
- ${strategy('finalStrategy')}${written('finalReason','What policy would you use next time? Support it with ymy results and distinguish decision quality from hindsight.')}
+ ${strategy('finalStrategy')}${written('finalReason','What policy would you use next time? Support it with your results and distinguish decision quality from hindsight.')}
  ${written('risk','Identify a remaining risk and an observable trigger that would require a change to your future policy.')}`}
 ];
 fields=[];$('steps').replaceChildren();
