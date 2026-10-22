@@ -393,7 +393,7 @@ function renderGrid(){
   grid.style.display='grid';
   grid.innerHTML='';
   cfg.minicases.forEach((mc,i)=>{
-    if(i===2)mc={...mc,description:'Group report · up to 5 students · EURUSD and EUR interest-rate risk · two board conversations'};
+    if(i===2)mc={...mc,description:'Individual report · 10 assigned versions · EURUSD and EUR interest-rate risk'};
     const n=i+1, active=mc.active;
     const secs=Array.isArray(mc.sections)?mc.sections:[];
     const activeSecs=secs.filter(s=>s.active);
@@ -515,6 +515,7 @@ function renderSettings(){
         '</div>'+
       '</div>';
     c.appendChild(d);
+    if(i===2){d.querySelector('#mc-nsec-2').disabled=true;const controls=document.createElement('p');const a=document.createElement('a');a.href='mc3-instructor.html';a.textContent='MC3: view individual drafts, archive/reset students, or release previous group names';controls.append(a);d.querySelector('.acc-body').prepend(controls);}
     buildSectionRows(i,secs);
   });
 }
@@ -530,10 +531,12 @@ function buildSectionRows(idx,secs){
       '<input class="grp-input" type="number" id="grp-'+idx+'-'+si+'" value="'+(s.groups||5)+'" min="1" max="40">'+
       '<span class="grp-label">groups</span>'+
       '<div class="tog-wrap"><span class="tlabel">Active</span><label class="toggle"><input type="checkbox" id="sec-active-'+idx+'-'+si+'" '+(s.active!==false?'checked':'')+' ><span class="tslider"></span></label></div>';
+    if(idx===2){r.querySelector('.grp-input').hidden=true;r.querySelector('.grp-label').textContent='40 students · 10 assigned versions';}
     cont.appendChild(r);
   });
 }
 function updateSections(idx){
+  if(idx===2)return;
   const n=parseInt(document.getElementById('mc-nsec-'+idx).value)||2;
   buildSectionRows(idx,Array.from({length:n},(_,si)=>({name:'Section '+(si+1),active:true,groups:5})));
 }
@@ -684,6 +687,8 @@ function gradeMC1(d, A){
 
 // SUBMISSION STATUS
 async function loadStatusForMC(mcIdx){
+  if(mcIdx===2){const host=document.getElementById('mc-status-2');host.textContent='Loading individual records…';try{const snap=await db.collection('mc405_mc3_individual').get({source:'server'});host.replaceChildren();const link=document.createElement('a');link.href='mc3-instructor.html';link.textContent='View all 40 students, reset attempts and release previous group names';host.append(link);for(const d of snap.docs){const p=document.createElement('p');const v=d.data();p.textContent=v.studentName+' · V'+v.version+' · Attempt '+v.attempt+' · '+v.status;host.append(p);}if(!snap.size)host.append(document.createTextNode(' — No individual work started. Previous group work is in instructor controls.'));}catch(e){host.textContent=e.message;}return;}
+
   const mc=cfg.minicases[mcIdx];
   const secs=mcIdx===2?(mc.sections||[]).slice(0,1):(mc.sections||[]);
   const mcNum=mcIdx+1;
@@ -758,6 +763,7 @@ function subMcChanged(){
   grpSel.innerHTML='<option value="">— Group —</option>';
   grpSel.disabled=true;
   if(mcIdx===''){secSel.disabled=true;return;}
+  if(mcIdx==='2'){secSel.disabled=true;grpSel.disabled=true;document.getElementById('sub-data').innerHTML='<iframe title="MC3 individual records and name release" src="mc3-instructor.html" style="width:100%;height:850px;border:0"></iframe>';return;}
   const mc=cfg.minicases[parseInt(mcIdx)];
   (parseInt(mcIdx)===2?(mc.sections||[]).slice(0,1):(mc.sections||[])).forEach((s,si)=>{
     const opt=document.createElement('option');opt.value=si+1;opt.textContent=s.name||'Section '+(si+1);secSel.appendChild(opt);
@@ -778,6 +784,7 @@ function subSecChanged(){
 }
 async function loadSubmission(){
   const mcIdx=document.getElementById('sub-mc').value;
+  if(mcIdx==='2'){document.getElementById('sub-data').innerHTML='<iframe title="MC3 individual records" src="mc3-instructor.html" style="width:100%;height:850px;border:0"></iframe>';return;}
   const sec=document.getElementById('sub-sec').value;
   const grp=document.getElementById('sub-grp').value;
   const div=document.getElementById('sub-data');
