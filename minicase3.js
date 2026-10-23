@@ -6,7 +6,7 @@ const paths={config:'minicase_hub405/config'};
 let db,cfg={},teamReady=false,submitted=false,agents={},verified={},saveTimer,busy=false,receiptData=null;
 let student=null,groupService=null,committedStrategy=null,outcomesVerified=false;
 let serverRecord=null,baseline={},pending={},unsubscribe=null,stale=false,applying=false,specs=[],fields=[];
-let saveChain=Promise.resolve(),saveSequence=0;
+let saveChain=Promise.resolve(),saveSequence=0,inFlight=null;
 const withDeadline=(promise,ms=20000)=>new Promise((resolve,reject)=>{
   const timer=setTimeout(()=>reject(Error('Connection is taking too long. Your work remains on this device; retry when connected.')),ms);
   promise.then(v=>{clearTimeout(timer);resolve(v);},e=>{clearTimeout(timer);reject(e);});
@@ -176,7 +176,7 @@ function flatten(d){
 }
 function captureChanges(){
  if(applying||!serverRecord||stale)return;
- for(const [key,value]of Object.entries(flatten(payload())))if(!MC405Individual.equal(value,baseline[key])){
+ for(const [key,value]of Object.entries(flatten(payload())))if(!MC405Individual.equal(value,baseline[key])||(inFlight?.[key]&&!MC405Individual.equal(value,inFlight[key].value))){
   if(!pending[key])pending[key]={expected:baseline[key]??null,value};else pending[key].value=value;
  }else if(pending[key]&&MC405Individual.equal(value,pending[key].expected))delete pending[key];
 }
@@ -199,13 +199,26 @@ async function saveDraft(force=false){
  const service=groupService,attempt=serverRecord.attempt;
  saveChain=saveChain.catch(()=>{}).then(async()=>{
   if(stale)return false;
+  while(!stale&&!submitted){
   captureChanges();const batch=JSON.parse(JSON.stringify(pending));if(!Object.keys(batch).length)return true;
+  inFlight=batch;
   $('draft-status').textContent='Saving your individual draft to Firebase…';
   try{
    const d=await withDeadline(service.patch(attempt,Object.fromEntries(Object.entries(batch).map(([k,v])=>[k,v.value])),Object.fromEntries(Object.entries(batch).map(([k,v])=>[k,v.expected]))));
-   for(const [k,v]of Object.entries(batch))if(MC405Individual.equal(pending[k]?.value,v.value))delete pending[k];
-   applyRecord(d,false);saveLocal();$('draft-status').textContent='Your individual draft is saved.';return true;
-  }catch(e){$('draft-status').textContent='Save NOT confirmed. '+e.message;if(/reset/.test(e.message))blockSession(e.message);return false;}
+   captureChanges();
+   // Acknowledge our own write without discarding edits typed while it was pending.
+   // Only advance the expected value for fields actually saved by this transaction.
+   for(const [k,v]of Object.entries(batch))if(pending[k]){
+    if(MC405Individual.equal(pending[k].value,v.value))delete pending[k];
+    else pending[k].expected=v.value;
+   }
+   inFlight=null;applyRecord(d,false);saveLocal();
+   if(stale||submitted)return false;
+   if(!Object.keys(pending).length){$('draft-status').textContent='Your individual draft is saved.';return true;}
+   // Flush newer edits before allowing a Board request or final submission.
+
+  }catch(e){$('draft-status').textContent='Save NOT confirmed. '+e.message;if(/reset/.test(e.message))blockSession(e.message);return false;}finally{inFlight=null;}
+  }return false;
  });return saveChain;
 }
 function showAgent(n){
