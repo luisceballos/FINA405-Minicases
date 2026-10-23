@@ -132,7 +132,7 @@ function update(){
   if(!fields.length)return;
   for(const id of fields)$(id).disabled=stale||submitted;
   specs.forEach((s,i)=>{
-    const open=isOpen(i);$('body'+i).hidden=!open;$('body'+i).inert=!open;$('lock'+i).hidden=open;
+    const open=isOpen(i);const blockedBy=specs.findIndex((_,j)=>j<i&&(!verified[j]||!complete(j)));$('lock'+i).textContent=blockedBy>=0?'Complete '+specs[blockedBy].title+' and click Check answers & continue to unlock this part.':'Complete and verify the previous part to continue.';$('body'+i).hidden=!open;$('body'+i).inert=!open;$('lock'+i).hidden=open;
     s.texts.forEach(id=>{$(id+'-count').textContent=`${$(id).value.trim().length} / 51 characters minimum · instructor evaluates reasoning`;});
   });
   $('submitBtn').disabled=preview||!teamReady||submitted||busy||!specs.every((_,i)=>verified[i]&&complete(i));
@@ -230,6 +230,19 @@ function boardChallenge(n,focus,quote=''){
  const questions={certainty:'Why do the predictable amounts fit your objective, and how would you manage what remains uncertain?',opportunity_cost:'Why does this trade-off between predictable funding and potential upside fit the firm?',alternative:'What led you to prefer this policy over another option? Please compare the numerical implications.',residual_risk:`How would you manage remaining exposure on EUR${M.N}m principal and interest, and how does this complement the strategy?`,hindsight:'How did information available in March 2026 guide your choice, and how do you distinguish it from the later outcome?',tradeoff:'How do the EUR savings and USD proceeds relate to your original objective? Explain each currency separately.',future_policy:'What have the results taught you, and what observable change would lead you to revise the policy?'};
  return intro+facts+questions[focus];
 }
+function boardStatus(n,refuting,message){
+ const el=$(refuting?'refute'+n+'-status':'agent'+n+'-status');el.textContent=message;
+}
+async function saveBeforeBoard(n,refuting){
+ boardStatus(n,refuting,'Saving your answers before contacting the board…');
+ if(await saveDraft(true))return true;
+ boardStatus(n,refuting,($('draft-status').textContent||'Save not confirmed.')+' The board has not been contacted. Your text remains on this page. Resolve the save issue, then click this button again.');
+ busy=false;update();return false;
+}
+async function runBoard(n,refuting=false){
+ try{await ask(n,refuting);}catch(e){boardStatus(n,refuting,'The board request could not finish: '+e.message+'. Your answers remain on this page. Retry using this button.');}
+ finally{busy=false;update();}
+}
 async function ask(n,refuting=false){
   const i=n===1?BOARD1:BOARD2;
   if(!isOpen(i)||busy||(!refuting&&agents[n])||(refuting&&(!agents[n]||agents[n].refutation)))return;
@@ -238,14 +251,14 @@ async function ask(n,refuting=false){
     if(defense.length<=50){$('refute'+n+'-status').textContent='Write more than 50 characters before submitting your answer.';return;}
     agents[n].defenseSubmitted=defense;
     agents[n].defenseSubmittedAt ||= new Date().toISOString();
-    busy=true;showAgent(n);update();captureChanges();saveLocal();if(!preview&&!await saveDraft(true)){busy=false;update();return;}
+    busy=true;showAgent(n);update();captureChanges();saveLocal();if(!preview&&!await saveBeforeBoard(n,refuting))return;
   }
   if(n===1&&(!['none','fra','fx','both'].includes($('strategy').value)||$('strategyReason').value.trim().length<=50)){$('agent1-status').textContent='Choose and explain your initial strategy first (more than 50 characters).';return;}
   if(n===2&&(!outcomesVerified||!specs[BOARD2].nums.every(numericCorrect)||$('outcomeReason').value.trim().length<=50)){$('agent2-status').textContent='Verify the realized results and explain them before meeting the board.';return;}
   if(!preview){
     busy=true;update();
-    if(!await saveDraft(true)){busy=false;update();return;}
-    try{await withDeadline(groupService.claimBoard(serverRecord.attempt,n,refuting));}catch(e){busy=false;$('agent'+n+'-status').textContent=e.message;update();return;}
+    if(!await saveBeforeBoard(n,refuting))return;
+    try{await withDeadline(groupService.claimBoard(serverRecord.attempt,n,refuting));}catch(e){busy=false;boardStatus(n,refuting,e.message);update();return;}
   }
   const initial={answers:answers(),version:M.version,computed:n===1?{coupon:M.targets.coupon,ytm:M.targets.ytm,usdBondPrice:M.targets.usdBondPrice,currentEURUSD:M.SPOT,spotBenchmark:M.targets.spotBenchmark,forwardEURUSD:M.FORWARD,forwardUSD:M.targets.forwardUSD,fraRate:M.K}:M.targets,meetingDate:n===1?'March 2026':'March 2028',committedStrategy,...(n===2?{realizedMarket:{rate:M.R,EURUSD:M.FUTURE_SPOT},results:realizedTargets()}: {})};
   if(refuting){initial.defenseSubmitted=agents[n].defenseSubmitted;initial.initialAssessment=agents[n].challenge;}
@@ -290,7 +303,7 @@ async function ask(n,refuting=false){
     response.challenge='Thank you for explaining your reasoning. We would like to explore it further. '+challenge+' In your final opinion, help us understand your reasoning further and explain what you maintain or reconsider, and why.';
     agents[n].refutation=response;
   }else agents[n]=response;
-  busy=false;showAgent(n);$('agent'+n+'-status').textContent=refuting?'Complete step 4 in the separate final-opinion box, then check and continue.':'Complete step 2 below, then submit your answer to receive the board’s follow-up question.';update();await saveDraft();
+  busy=false;showAgent(n);$('agent'+n+'-status').textContent=refuting?'Complete step 4 in the separate final-opinion box, then check and continue.':'Complete step 2 below, then submit your answer to receive the board’s follow-up question.';update();if(!preview&&!await saveDraft())boardStatus(n,refuting,'The board response is displayed, but Firebase has not confirmed saving it. '+$('draft-status').textContent+' Keep this page open and use Save individual draft to retry.');
 }
 function receipt(data){
  submitted=true;receiptData=data;clearTimeout(saveTimer);pending={};
@@ -314,7 +327,7 @@ function bindFields(){
   invalidate(specs.findIndex(s=>[...s.nums,...s.texts,...(s.selects||[])].includes(id)));
   captureChanges();saveLocal();clearTimeout(saveTimer);saveTimer=setTimeout(()=>saveDraft(),700);
  }));
- $('refute1').onclick=()=>ask(1,true);$('refute2').onclick=()=>ask(2,true);$('ask1').onclick=()=>ask(1);$('ask2').onclick=()=>ask(2);$('check-outcomes').onclick=verifyOutcomes;
+ $('refute1').onclick=()=>runBoard(1,true);$('refute2').onclick=()=>runBoard(2,true);$('ask1').onclick=()=>runBoard(1);$('ask2').onclick=()=>runBoard(2);$('check-outcomes').onclick=verifyOutcomes;
 }
 function drawQuotes(){
  $('case-quotes').textContent=`Version ${M.version} · Face EUR${M.FV}; price EUR${M.P}; annual coupon ${(M.c*100).toFixed(1)}%; 2 years remaining. EUR two-year zero ${(M.r2*100).toFixed(2)}%; three-year zero ${(M.r3*100).toFixed(2)}%. Spot EURUSD ${M.SPOT.toFixed(2)}; two-year forward EURUSD ${M.FORWARD.toFixed(2)}. Planned borrowing EUR${M.N}m.`;
