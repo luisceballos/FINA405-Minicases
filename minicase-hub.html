@@ -393,6 +393,7 @@ function renderGrid(){
   grid.style.display='grid';
   grid.innerHTML='';
   cfg.minicases.forEach((mc,i)=>{
+    if(i===3)mc={...mc,description:'Individual report · 15 assigned versions · CAD and MXN swaps · local and USD returns'};
     if(i===2)mc={...mc,description:'Individual report · 10 assigned versions · EURUSD and EUR interest-rate risk'};
     const n=i+1, active=mc.active;
     const secs=Array.isArray(mc.sections)?mc.sections:[];
@@ -404,14 +405,15 @@ function renderGrid(){
     card.innerHTML=
       '<div class="card-hd"><span class="num">Minicase '+n+'</span><span class="pill '+(active?'open':'closed')+'">'+(active?'Open':'Not Available')+'</span></div>'+
       '<div class="card-bd"><div class="title">'+(mc.title||'Minicase '+n)+'</div>'+(mc.description?'<div class="desc">'+mc.description+'</div>':'')+'</div>'+
-      '<div class="card-ft"><span class="groups-info">'+(i===2?'Section 01 · Individual submission':(active&&activeSecs.length?activeSecs.length+' section'+(activeSecs.length>1?'s':'')+' · '+totalGroups+' groups':''))+'</span>'+
-      (active?'<button class="open-btn">'+(i===2?'Open Minicase →':'Select Group →')+'</button>':'<span class="soon">Coming soon</span>')+'</div>';
+      '<div class="card-ft"><span class="groups-info">'+(i>=2?'Section 01 · Individual submission':(active&&activeSecs.length?activeSecs.length+' section'+(activeSecs.length>1?'s':'')+' · '+totalGroups+' groups':''))+'</span>'+
+      (active?'<button class="open-btn">'+(i>=2?'Open Minicase →':'Select Group →')+'</button>':'<span class="soon">Coming soon</span>')+'</div>';
     grid.appendChild(card);
   });
 }
 
 // GROUP SELECTOR
 function openGS(idx){
+  if(idx===3){window.location.href='minicase4.html';return;}
   if(idx===2){window.location.href='minicase3.html?seccion=1';return;}
   currentMC=idx;
   const mc=cfg.minicases[idx];
@@ -515,6 +517,7 @@ function renderSettings(){
         '</div>'+
       '</div>';
     c.appendChild(d);
+    if(i===3){d.querySelector('#mc-nsec-3').disabled=true;const controls=document.createElement('p');const a=document.createElement('a');a.href='mc4-instructor.html';a.textContent='MC4: view individual work, release mistaken name selections, and archive/reset attempts';controls.append(a);d.querySelector('.acc-body').prepend(controls);}
     if(i===2){d.querySelector('#mc-nsec-2').disabled=true;const controls=document.createElement('p');const a=document.createElement('a');a.href='mc3-instructor.html';a.textContent='MC3: view individual drafts, archive/reset students, or release previous group names';controls.append(a);d.querySelector('.acc-body').prepend(controls);}
     buildSectionRows(i,secs);
   });
@@ -531,12 +534,13 @@ function buildSectionRows(idx,secs){
       '<input class="grp-input" type="number" id="grp-'+idx+'-'+si+'" value="'+(s.groups||5)+'" min="1" max="40">'+
       '<span class="grp-label">groups</span>'+
       '<div class="tog-wrap"><span class="tlabel">Active</span><label class="toggle"><input type="checkbox" id="sec-active-'+idx+'-'+si+'" '+(s.active!==false?'checked':'')+' ><span class="tslider"></span></label></div>';
+    if(idx===3){r.querySelector('.grp-input').hidden=true;r.querySelector('.grp-label').textContent='40 students · 15 assigned versions';}
     if(idx===2){r.querySelector('.grp-input').hidden=true;r.querySelector('.grp-label').textContent='40 students · 10 assigned versions';}
     cont.appendChild(r);
   });
 }
 function updateSections(idx){
-  if(idx===2)return;
+  if(idx>=2)return;
   const n=parseInt(document.getElementById('mc-nsec-'+idx).value)||2;
   buildSectionRows(idx,Array.from({length:n},(_,si)=>({name:'Section '+(si+1),active:true,groups:5})));
 }
@@ -550,14 +554,14 @@ function refreshPreview(idx){
 
 async function saveSettings(){
   const minicases=cfg.minicases.map((_,i)=>{
-    const nsec=parseInt(document.getElementById('mc-nsec-'+i).value)||2;
+    const nsec=i>=2?1:(parseInt(document.getElementById('mc-nsec-'+i).value)||2);
     const sections=[];
     for(let si=0;si<nsec;si++){
       const grpEl=document.getElementById('grp-'+i+'-'+si);
       const actEl=document.getElementById('sec-active-'+i+'-'+si);
       sections.push({name:'Section '+(si+1),active:actEl?actEl.checked:true,groups:grpEl?parseInt(grpEl.value)||5:5});
     }
-    return{active:document.getElementById('mc-active-'+i).checked,title:document.getElementById('mc-title-'+i).value.trim()||'Minicase '+(i+1),description:document.getElementById('mc-desc-'+i).value.trim(),sections};
+    return{...cfg.minicases[i],...(i>=2?{submissionMode:'individual'}:{}),active:document.getElementById('mc-active-'+i).checked,title:document.getElementById('mc-title-'+i).value.trim()||'Minicase '+(i+1),description:document.getElementById('mc-desc-'+i).value.trim(),sections};
   });
   cfg.minicases=minicases;
   try{
@@ -687,6 +691,7 @@ function gradeMC1(d, A){
 
 // SUBMISSION STATUS
 async function loadStatusForMC(mcIdx){
+  if(mcIdx===3){const host=document.getElementById('mc-status-3');host.innerHTML='<a href="mc4-instructor.html">MC4 individual records, submissions and release names</a>';return;}
   if(mcIdx===2){const host=document.getElementById('mc-status-2');host.textContent='Loading individual records…';try{const snap=await db.collection('mc405_mc3_individual').get({source:'server'});host.replaceChildren();const link=document.createElement('a');link.href='mc3-instructor.html';link.textContent='View all 40 students, reset attempts and release previous group names';host.append(link);for(const d of snap.docs){const p=document.createElement('p');const v=d.data();p.textContent=v.studentName+' · V'+v.version+' · Attempt '+v.attempt+' · '+v.status;host.append(p);}if(!snap.size)host.append(document.createTextNode(' — No individual work started. Previous group work is in instructor controls.'));}catch(e){host.textContent=e.message;}return;}
 
   const mc=cfg.minicases[mcIdx];
@@ -763,6 +768,7 @@ function subMcChanged(){
   grpSel.innerHTML='<option value="">— Group —</option>';
   grpSel.disabled=true;
   if(mcIdx===''){secSel.disabled=true;return;}
+  if(mcIdx==='3'){secSel.disabled=true;grpSel.disabled=true;document.getElementById('sub-data').innerHTML='<iframe title="MC4 individual records" src="mc4-instructor.html" style="width:100%;height:850px;border:0"></iframe>';return;}
   if(mcIdx==='2'){secSel.disabled=true;grpSel.disabled=true;document.getElementById('sub-data').innerHTML='<iframe title="MC3 individual records and name release" src="mc3-instructor.html" style="width:100%;height:850px;border:0"></iframe>';return;}
   const mc=cfg.minicases[parseInt(mcIdx)];
   (parseInt(mcIdx)===2?(mc.sections||[]).slice(0,1):(mc.sections||[])).forEach((s,si)=>{
@@ -784,6 +790,7 @@ function subSecChanged(){
 }
 async function loadSubmission(){
   const mcIdx=document.getElementById('sub-mc').value;
+  if(mcIdx==='3'){document.getElementById('sub-data').innerHTML='<iframe title="MC4 individual records" src="mc4-instructor.html" style="width:100%;height:850px;border:0"></iframe>';return;}
   if(mcIdx==='2'){document.getElementById('sub-data').innerHTML='<iframe title="MC3 individual records" src="mc3-instructor.html" style="width:100%;height:850px;border:0"></iframe>';return;}
   const sec=document.getElementById('sub-sec').value;
   const grp=document.getElementById('sub-grp').value;
