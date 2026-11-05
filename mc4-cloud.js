@@ -26,10 +26,22 @@ window.MC4Board=async payload=>{
  else{if(!cfg?.anthropicKey)throw Error('Course AI service not configured');response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':cfg.anthropicKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},signal:AbortSignal.timeout(22000),body:JSON.stringify({model:cfg.professorModel||'claude-haiku-4-5',max_tokens:250,system,messages:[{role:'user',content:JSON.stringify(payload)}]})});}
  if(!response.ok)throw Error('AI service temporarily unavailable');const data=await response.json(),raw=data.challenge||data.content?.filter(x=>x.type==='text').map(x=>x.text).join('\n');return data.focus?data:JSON.parse(raw.slice(raw.indexOf('{'),raw.lastIndexOf('}')+1));
 };
-try{await names();}catch(e){el('login-status').textContent=e.message;el('start').disabled=true;}
+async function instructorPreview(){
+ el('login-panel').innerHTML='<h1>MC4 · Instructor preview</h1><p>View all four stages and all 15 versions without reserving a student name.</p><label>Instructor password <input id="preview-password" type="password" autocomplete="current-password"></label><p><button id="preview-open">Open minicase as instructor</button></p><p id="login-status" role="status"></p>';
+ el('preview-open').onclick=async()=>{const button=el('preview-open');button.disabled=true;try{
+ const settings=(await db.doc('minicase_hub405/config').get({source:'server'})).data();
+ if(!el('preview-password').value||settings?.password!==el('preview-password').value)throw Error('Incorrect instructor password.');
+ cfg=settings;el('preview-password').value='';window.MC4InstructorPreview=true;
+ window.MC4InitialState={v:1,t:0,a:{},boards:{},done:{}};
+ window.MC4Persist={queue(){},async flush(){},async action(fn){await fn();}};
+ el('version').replaceChildren(...Array.from({length:15},(_,i)=>new Option(String(i+1).padStart(2,'0'),i+1)));
+ el('login-panel').hidden=true;el('student-work').hidden=false;
+ document.querySelector('.review').textContent='INSTRUCTOR PREVIEW · All stages unlocked · Answers shown beside cells · Practice only; no student records or submissions are saved.';
+ el('save-status').textContent='Instructor preview · Not saved to Firebase';
+ const script=document.createElement('script');script.src='mc4-app.js?v=instructor-20261104';script.onerror=()=>{el('login-panel').hidden=false;el('login-status').textContent='Could not load the preview. Reload and try again.';};document.head.append(script);
+ }catch(e){el('login-status').textContent=e.message;}finally{button.disabled=false;}};
+}
+try{if(new URLSearchParams(location.search).get('instructor')==='1')await instructorPreview();else await names();}catch(e){el('login-status').textContent=e.message;el('start').disabled=true;}
 })();
-
-
-
 
 
