@@ -19,8 +19,8 @@ function validate(old,next){
   const b=next.boards?.[t],prior=old.boards?.[t];
   if(prior?.locked&&b?.locked!==prior.locked)throw Error('Submitted explanation is locked.');
   if(prior?.follow&&b?.follow!==prior.follow)throw Error('Board follow-up is locked.');
-  if(b){if(t===0)throw Error('No board meeting on screen zero.');for(const key of ['draft','locked','final','follow'])if(b[key]!=null&&(typeof b[key]!=='string'||b[key].length>6000))throw Error('Board text too long.');if(b.locked&&(words(b.locked)<50||words(b.locked)>120||!CFO.valid(old.v,t,next.a)))throw Error('Verify calculations and use 50–120 words first.');if(b.follow&&!b.locked)throw Error('Missing initial explanation.');}
-  if(next.done?.[t]){if(t&&!next.done[t-1])throw Error('Complete earlier screens first.');if(!CFO.valid(old.v,t,next.a))throw Error('Verify all calculations before continuing.');if(t&&(!b?.locked||!b?.follow||words(b.final)<50||words(b.final)>120))throw Error('Complete the board conversation.');}
+  if(b){if(t===0)throw Error('No board meeting on screen zero.');for(const key of ['draft','locked','final','follow'])if(b[key]!=null&&(typeof b[key]!=='string'||b[key].length>6000))throw Error('Board text too long.');if(b.locked&&(words(b.locked)<50||words(b.locked)>120))throw Error('Use 50–120 words for your explanation.');if(b.follow&&!b.locked)throw Error('Missing initial explanation.');}
+  if(next.done?.[t]){if(t&&!next.done[t-1])throw Error('Complete earlier screens first.');if(t&&(!b?.locked||!b?.follow||words(b.final)<50||words(b.final)>120))throw Error('Complete the board conversation.');}
   if(t>0&&(Object.keys(next.a||{}).some(k=>k.startsWith('t'+t+'_'))||b)&&!next.done?.[t-1])throw Error('That screen is not unlocked.');
  }
  if(next.t>0&&!next.done?.[next.t-1])throw Error('That screen is not unlocked.');
