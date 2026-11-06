@@ -13,6 +13,9 @@ const prices=c.Y.map((y,i)=>(i===5?0:Number(bond(c.N,c.c,y,5-i).toFixed(2))));co
 return {...c,prices,returns,rows,price,swap1,swap2,close,onlyNext,bothNext,total,keep,unhedged:t*c.N*c.c+(t===5?c.N:price),exit:rows[2].cf+price+close};}
 function calc(p,t){return {countries:p.countries.map(c=>country(c,t))};}
 function targets(v,stage){const p=packet(v),m=calc(p,stage===3?5:stage),out={},pre='t'+stage+'_',edit=stage===0?[1]:stage===1?[2]:stage===2?[3]:[4,5];for(const c of m.countries){const k=pre+c.id+'_';for(const y of edit){const r=c.rows[y-1];Object.assign(out,{[k+'debt'+y]:r.debt,[k+'paid'+y]:r.pay1+r.pay2,[k+'received'+y]:r.rec1+r.rec2,[k+'cf'+y]:r.cf});}if(stage===1){out[k+'only']=c.onlyNext;out[k+'change']=c.onlyNext-c.N*c.c;}if(stage===2){out[k+'only']=c.onlyNext;out[k+'saving']=c.onlyNext-c.bothNext;out[k+'realized']=0;}if(stage===3)out[k+'total']=c.total;out[k+'annualRate']=100*(stage<2?c.c+c.R[stage]-c.K1:c.c+c.K2-c.K1);if(stage)for(const y of stage===3?[3,4,5]:[stage]){const r=calc(p,y).countries.find(x=>x.id===c.id).returns;out[k+'returnLocal'+y]=r.local;out[k+'returnUSD'+y]=r.usd;}}return out;}
-function valid(v,stage,answers){return Object.entries(targets(v,stage)).every(([k,n])=>typeof answers[k]==='string'&&answers[k].trim()!==''&&Number.isFinite(Number(answers[k]))&&Math.abs(Number(answers[k])-n)<=.0051);}
-root.CFO={packet,calc,ann,bond,targets,valid};if(typeof module!=='undefined')module.exports=root.CFO;
+// Rates/returns: percentage points. Amounts: local-currency millions.
+function tolerance(id,expected){return /(?:annualRate|returnLocal\d+|returnUSD\d+)$/.test(id)?0.05:Math.max(0.01,Math.abs(expected)*0.005);}
+function accepts(id,value,expected){if(value===null||value===undefined||!['string','number'].includes(typeof value)||String(value).trim()==='')return false;const n=Number(value);return Number.isFinite(n)&&Number.isFinite(expected)&&Math.abs(n-expected)<=tolerance(id,expected)+1e-10;}
+function valid(v,stage,answers){return Object.entries(targets(v,stage)).every(([k,n])=>accepts(k,answers[k],n));}
+root.CFO={packet,calc,ann,bond,targets,tolerance,accepts,valid};if(typeof module!=='undefined')module.exports=root.CFO;
 })(globalThis);
